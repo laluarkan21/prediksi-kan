@@ -75,4 +75,7 @@ def predict():
 
 # Jalankan server
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=8000)
+    # Ambil port dari Koyeb, atau 5000 jika dijalankan lokal
+    port = int(os.environ.get('PORT', 8000)) 
+    # Jalankan dengan host '0.0.0.0' dan debug=False
+    app.run(debug=False, host='0.0.0.0', port=port)
