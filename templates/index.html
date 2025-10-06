@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediksi Pertandingan Sepak Bola</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Prediksi Pertandingan</h1>
+        </header>
+        <form id="prediction-form">
+            <div class="form-section">
+                <fieldset>
+                    <legend>Statistik Tim Tuan Rumah (5 Laga Terakhir)</legend>
+                    <div class="input-group">
+                        <label for="avg_ht_gs">Rata-rata Gol:</label>
+                        <input type="number" step="0.1" id="Avg_HT_GS" value="2.2" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="avg_ht_gc">Rata-rata Kebobolan:</label>
+                        <input type="number" step="0.1" id="Avg_HT_GC" value="0.6" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="ht_wins">Menang (M):</label>
+                        <input type="number" id="HT_Wins" value="4" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="ht_draws">Seri (S):</label>
+                        <input type="number" id="HT_Draws" value="1" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="ht_losses">Kalah (K):</label>
+                        <input type="number" id="HT_Losses" value="0" required>
+                    </div>
+                </fieldset>
+                <fieldset>
+                    <legend>Statistik Tim Tamu (5 Laga Terakhir)</legend>
+                    <div class="input-group">
+                        <label for="avg_at_gs">Rata-rata Gol:</label>
+                        <input type="number" step="0.1" id="Avg_AT_GS" value="1.8" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="avg_at_gc">Rata-rata Kebobolan:</label>
+                        <input type="number" step="0.1" id="Avg_AT_GC" value="1.0" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="at_wins">Menang (M):</label>
+                        <input type="number" id="AT_Wins" value="3" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="at_draws">Seri (S):</label>
+                        <input type="number" id="AT_Draws" value="1" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="at_losses">Kalah (K):</label>
+                        <input type="number" id="AT_Losses" value="1" required>
+                    </div>
+                </fieldset>
+            </div>
+            <fieldset>
+                <legend>Head-to-Head & Odds</legend>
+                 <div class="input-group">
+                    <label for="h2h_ht_win_rate">Rasio Kemenangan H2H Tuan Rumah (%):</label>
+                    <input type="number" step="0.1" id="H2H_HT_Win_Rate" value="0.5" required>
+                </div>
+                <hr>
+                <div class="input-group">
+                    <label for="odds_h">Odds Home (1):</label>
+                    <input type="number" step="0.01" id="odds_h" value="1.70" required>
+                </div>
+                <div class="input-group">
+                    <label for="odds_d">Odds Draw (X):</label>
+                    <input type="number" step="0.01" id="odds_d" value="3.90" required>
+                </div>
+                <div class="input-group">
+                    <label for="odds_a">Odds Away (2):</label>
+                    <input type="number" step="0.01" id="odds_a" value="4.75" required>
+                </div>
+                 <hr>
+                <div class="input-group">
+                    <label for="odds_over_2_5">Odds Over 2.5:</label>
+                    <input type="number" step="0.01" id="odds_over_2_5" value="1.85" required>
+                </div>
+                <div class="input-group">
+                    <label for="odds_under_2_5">Odds Under 2.5:</label>
+                    <input type="number" step="0.01" id="odds_under_2_5" value="1.95" required>
+                </div>
+            </fieldset>
+            <button type="submit" id="predict-button">Dapatkan Prediksi</button>
+        </form>
+
+        <div id="loader" class="hidden">
+            <div class="soccer-ball"></div>
+            <p>Menganalisis...</p>
+        </div>
+        <div id="results-container" class="hidden">
+            <h2>Hasil Prediksi</h2>
+            <p><strong>Pemenang (H/A):</strong> <span id="winner-result"></span></p>
+            <p><strong>Over/Under 2.5:</strong> <span id="ou-result"></span></p>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 - Lalu Naofal Arkan</p>
+        <div class="social-links">
+            <a href="#" target="_blank" aria-label="GitHub"><i class="fab fa-github"></i></a>
+            <a href="#" target="_blank" aria-label="LinkedIn"><i class="fab fa-linkedin"></i></a>
+            <a href="mailto:lalunaufalarkan21@gmail.com" aria-label="Email"><i class="fas fa-envelope"></i></a>
+        </div>
+    </footer>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
