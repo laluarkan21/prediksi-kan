@@ -2,80 +2,124 @@ from flask import Flask, request, jsonify, render_template
 import joblib
 import pandas as pd
 import numpy as np
+import os
 
-# Inisialisasi aplikasi Flask
 app = Flask(__name__)
 
-# Muat model dan scaler saat server pertama kali dijalankan
-try:
-    models = {
-        'ha': joblib.load('models/model_pemenang.joblib'),
-        'ou': joblib.load('models/model_over_under.joblib')
-    }
-    scalers = {
-        'ha': joblib.load('models/scaler_pemenang.joblib'),
-        'ou': joblib.load('models/scaler_over_under.joblib')
-    }
-    features = joblib.load('models/features.joblib')
-    print("Model dan scaler berhasil dimuat.")
-except FileNotFoundError:
-    print("Error: File model/scaler tidak ditemukan. Harap jalankan 'train.py' terlebih dahulu.")
-    models, scalers, features = None, None, None
+# --- Memuat Semua Model Saat Server Dijalankan ---
+models, scalers, features_dict = {}, {}, {}
+models_folder = 'models'
+if os.path.exists(models_folder):
+    for liga_name in os.listdir(models_folder):
+        liga_path = os.path.join(models_folder, liga_name)
+        if os.path.isdir(liga_path):
+            try:
+                # Memuat semua 4 model untuk setiap liga
+                models[liga_name] = {
+                    'hda': joblib.load(os.path.join(liga_path, 'model_hda.joblib')),
+                    'ou': joblib.load(os.path.join(liga_path, 'model_over_under.joblib')),
+                    'btts': joblib.load(os.path.join(liga_path, 'model_btts.joblib')),
+                    'ha': joblib.load(os.path.join(liga_path, 'model_hda.joblib'))
+                }
+                scalers[liga_name] = {
+                    'hda': joblib.load(os.path.join(liga_path, 'scaler_hda.joblib')),
+                    'ou': joblib.load(os.path.join(liga_path, 'scaler_over_under.joblib')),
+                    'btts': joblib.load(os.path.join(liga_path, 'scaler_btts.joblib')),
+                    'ha': joblib.load(os.path.join(liga_path, 'scaler_hda.joblib'))
+                }
+                features_dict[liga_name] = joblib.load(os.path.join(liga_path, 'features.joblib'))
+                print(f"Model untuk liga '{liga_name}' berhasil dimuat.")
+            except FileNotFoundError:
+                print(f"Peringatan: Folder model '{liga_name}' tidak lengkap atau nama file model salah.")
+else:
+    print("Error: Folder 'models' tidak ditemukan. Jalankan 'train.py' terlebih dahulu.")
 
-# Rute untuk halaman utama
 @app.route('/')
 def home():
-    return render_template('index.html')
+    available_leagues = sorted(list(models.keys()))
+    return render_template('index.html', leagues=available_leagues)
 
-# Rute untuk menerima data dan memberikan prediksi
 @app.route('/predict', methods=['POST'])
 def predict():
-    if not models:
-        return jsonify({'error': 'Model tidak dimuat!'}), 500
+    data = request.get_json()
+    liga_name = data.get('liga')
 
-    # Ambil data JSON yang dikirim dari frontend
-    manual_inputs = request.get_json()
+    if not liga_name or liga_name not in models:
+        return jsonify({'error': 'Liga tidak valid atau model tidak ditemukan.'}), 400
 
-    # Lakukan kalkulasi seperti di fungsi predict_new_match_manual
     try:
-        # Hitung probabilitas odds HDA
-        prob_h = 1 / float(manual_inputs['odds_h'])
-        prob_d = 1 / float(manual_inputs['odds_d'])
-        prob_a = 1 / float(manual_inputs['odds_a'])
-        total_prob_hda = prob_h + prob_d + prob_a
-        manual_inputs['Norm_Prob_H'] = prob_h / total_prob_hda
-        manual_inputs['Norm_Prob_D'] = prob_d / total_prob_hda
-        manual_inputs['Norm_Prob_A'] = prob_a / total_prob_hda
+        # --- KALKULASI FITUR DI BACKEND ---
+        ht_scores, at_scores = data.get('ht_scores', []), data.get('at_scores', [])
+        ht_gs,ht_gc,ht_w,ht_d,ht_l = 0,0,0,0,0
+        for score in ht_scores:
+            s=[int(p) for p in score.split('-')]; ht_gs+=s[0]; ht_gc+=s[1]
+            if s[0]>s[1]: ht_w+=1
+            elif s[0]==s[1]: ht_d+=1
+            else: ht_l+=1
         
-        # Hitung probabilitas odds O/U
-        prob_over = 1 / float(manual_inputs['odds_over_2_5'])
-        prob_under = 1 / float(manual_inputs['odds_under_2_5'])
-        total_prob_ou = prob_over + prob_under
-        manual_inputs['Norm_Prob_Over'] = prob_over / total_prob_ou
-        manual_inputs['Norm_Prob_Under'] = prob_under / total_prob_ou
+        at_gs,at_gc,at_w,at_d,at_l = 0,0,0,0,0
+        for score in at_scores:
+            s=[int(p) for p in score.split('-')]; at_gs+=s[0]; at_gc+=s[1]
+            if s[0]>s[1]: at_w+=1
+            elif s[0]==s[1]: at_d+=1
+            else: at_l+=1
         
-        # Buat DataFrame satu baris
+        # PERBAIKAN: Hitung rasio H2H dari input jumlah kemenangan
+        h2h_wins = int(data.get('h2h_wins', 0))
+        h2h_win_rate = h2h_wins / 5.0 # Diasumsikan selalu dari 5 pertandingan
+
+        num_matches=5.0
+        manual_inputs = {
+            'Avg_HT_GS': ht_gs/num_matches, 'Avg_HT_GC': ht_gc/num_matches, 'HT_Wins': ht_w, 'HT_Draws': ht_d, 'HT_Losses': ht_l,
+            'Avg_AT_GS': at_gs/num_matches, 'Avg_AT_GC': at_gc/num_matches, 'AT_Wins': at_w, 'AT_Draws': at_d, 'AT_Losses': at_l,
+            'H2H_HT_Win_Rate': h2h_win_rate,
+            'AHh': float(data.get('ahh', 0)), 'AvgAHH': float(data.get('avg_ahh', 0)), 'AvgAHA': float(data.get('avg_aha', 0))
+        }
+        
+        odds_h,odds_d,odds_a=float(data['odds_h']),float(data['odds_d']),float(data['odds_a'])
+        prob_h,prob_d,prob_a=1/odds_h,1/odds_d,1/odds_a
+        total_prob_hda=prob_h+prob_d+prob_a
+        manual_inputs['Norm_Prob_H'],manual_inputs['Norm_Prob_D'],manual_inputs['Norm_Prob_A']=prob_h/total_prob_hda,prob_d/total_prob_hda,prob_a/total_prob_hda
+        
+        odds_over,odds_under=float(data['odds_over_2_5']),float(data['odds_under_2_5'])
+        prob_over,prob_under=1/odds_over,1/odds_under
+        total_prob_ou=prob_over+prob_under
+        manual_inputs['Norm_Prob_Over'],manual_inputs['Norm_Prob_Under']=prob_over/total_prob_ou,prob_under/total_prob_ou
+        
+        features = features_dict[liga_name]
         feature_vector = pd.DataFrame([manual_inputs])[features]
         feature_vector.fillna(0, inplace=True)
 
-        # Lakukan scaling dan prediksi
-        X_scaled_ha = scalers['ha'].transform(feature_vector)
-        pred_ha = 'Home' if models['ha'].predict(X_scaled_ha)[0] == 1 else 'Away'
-        
-        X_scaled_ou = scalers['ou'].transform(feature_vector)
-        pred_ou = 'Over 2.5' if models['ou'].predict(X_scaled_ou)[0] == 1 else 'Under 2.5'
+        # Prediksi H/D/A
+        X_scaled_hda = scalers[liga_name]['hda'].transform(feature_vector)
+        pred_hda_proba = models[liga_name]['hda'].predict_proba(X_scaled_hda)[0]
+        label_map_hda = {2: 'Home', 1: 'Draw', 0: 'Away'}
+        pred_hda_idx = np.argmax(pred_hda_proba)
+        pred_hda_label = label_map_hda.get(pred_hda_idx, 'N/A')
+        pred_hda_confidence = pred_hda_proba[pred_hda_idx]
 
-        # Kembalikan hasil dalam format JSON
+        # Prediksi O/U
+        X_scaled_ou = scalers[liga_name]['ou'].transform(feature_vector)
+        pred_ou_proba = models[liga_name]['ou'].predict_proba(X_scaled_ou)[0]
+        pred_ou_label = 'Over 2.5' if pred_ou_proba[1] > 0.5 else 'Under 2.5'
+        pred_ou_confidence = pred_ou_proba[1] if pred_ou_label == 'Over 2.5' else pred_ou_proba[0]
+
+        # Prediksi BTTS
+        X_scaled_btts = scalers[liga_name]['btts'].transform(feature_vector)
+        pred_btts_proba = models[liga_name]['btts'].predict_proba(X_scaled_btts)[0]
+        pred_btts_label = 'Yes' if pred_btts_proba[1] > 0.5 else 'No'
+        pred_btts_confidence = pred_btts_proba[1] if pred_btts_label == 'Yes' else pred_btts_proba[0]
+        
         return jsonify({
-            "prediksi_pemenang": pred_ha,
-            "prediksi_ou": pred_ou
+            "prediksi_hda": f"{pred_hda_label} ({pred_hda_confidence:.0%})",
+            "prediksi_ou": f"{pred_ou_label} ({pred_ou_confidence:.0%})",
+            "prediksi_btts": f"{pred_btts_label} ({pred_btts_confidence:.0%})"
         })
+
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
-# Jalankan server
 if __name__ == '__main__':
-    # Ambil port dari Koyeb, atau 5000 jika dijalankan lokal
-    port = int(os.environ.get('PORT', 8000)) 
-    # Jalankan dengan host '0.0.0.0' dan debug=False
+    port = int(os.environ.get('PORT', 8000))
     app.run(debug=False, host='0.0.0.0', port=port)
+
