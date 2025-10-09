@@ -12,28 +12,33 @@ document.addEventListener('DOMContentLoaded', () => {
         predictButton.disabled = true;
         predictButton.querySelector('span').textContent = 'Memproses...';
 
-        const ht_scores = Array.from(document.querySelectorAll('#ht-scores .split-score-input')).map(div => {
-            const parts = div.querySelectorAll('.score-part');
-            return `${parts[0].value || 0}-${parts[1].value || 0}`;
-        });
-        const at_scores = Array.from(document.querySelectorAll('#at-scores .split-score-input')).map(div => {
-            const parts = div.querySelectorAll('.score-part');
-            return `${parts[0].value || 0}-${parts[1].value || 0}`;
-        });
-
         const inputs = {
-            'liga': document.getElementById('liga').value,
-            'ht_scores': ht_scores,
-            'at_scores': at_scores,
-            'h2h_wins': document.getElementById('h2h_wins').value,
-            'ahh': document.getElementById('ahh').value,
-            'avg_ahh': document.getElementById('avg_ahh').value,
-            'avg_aha': document.getElementById('avg_aha').value,
-            'odds_h': document.getElementById('odds_h').value,
-            'odds_d': document.getElementById('odds_d').value,
-            'odds_a': document.getElementById('odds_a').value,
-            'odds_over_2_5': document.getElementById('odds_over_2_5').value,
-            'odds_under_2_5': document.getElementById('odds_under_2_5').value,
+            liga: document.getElementById('liga').value,
+
+            // Statistik Home Team (5 laga terakhir)
+            ht_gs: document.getElementById('ht_gs').value,
+            ht_gc: document.getElementById('ht_gc').value,
+            ht_w: document.getElementById('ht_w').value,
+            ht_d: document.getElementById('ht_d').value,
+            ht_l: document.getElementById('ht_l').value,
+
+            // Statistik Away Team (5 laga terakhir)
+            at_gs: document.getElementById('at_gs').value,
+            at_gc: document.getElementById('at_gc').value,
+            at_w: document.getElementById('at_w').value,
+            at_d: document.getElementById('at_d').value,
+            at_l: document.getElementById('at_l').value,
+
+            // Tambahan data lain
+            h2h_wins: document.getElementById('h2h_wins').value,
+            ahh: document.getElementById('ahh').value,
+            avg_ahh: document.getElementById('avg_ahh').value,
+            avg_aha: document.getElementById('avg_aha').value,
+            odds_h: document.getElementById('odds_h').value,
+            odds_d: document.getElementById('odds_d').value,
+            odds_a: document.getElementById('odds_a').value,
+            odds_over_2_5: document.getElementById('odds_over_2_5').value,
+            odds_under_2_5: document.getElementById('odds_under_2_5').value,
         };
 
         try {
@@ -43,8 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(inputs),
             });
             const results = await response.json();
-            
-            // Tambahkan jeda singkat agar animasi terlihat
+
             setTimeout(() => {
                 loader.classList.add('hidden');
                 if (results.error) {
@@ -57,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 predictButton.disabled = false;
                 predictButton.querySelector('span').textContent = 'Dapatkan Prediksi';
-            }, 500); // Jeda 500 milidetik
+            }, 500);
 
         } catch (error) {
             alert('Gagal terhubung ke server. Pastikan server app.py sudah berjalan.');

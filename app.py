@@ -14,7 +14,6 @@ if os.path.exists(models_folder):
         liga_path = os.path.join(models_folder, liga_name)
         if os.path.isdir(liga_path):
             try:
-                # Memuat semua 4 model untuk setiap liga
                 models[liga_name] = {
                     'hda': joblib.load(os.path.join(liga_path, 'model_hda.joblib')),
                     'ou': joblib.load(os.path.join(liga_path, 'model_over_under.joblib')),
@@ -48,44 +47,44 @@ def predict():
         return jsonify({'error': 'Liga tidak valid atau model tidak ditemukan.'}), 400
 
     try:
-        # --- KALKULASI FITUR DI BACKEND ---
-        ht_scores, at_scores = data.get('ht_scores', []), data.get('at_scores', [])
-        ht_gs,ht_gc,ht_w,ht_d,ht_l = 0,0,0,0,0
-        for score in ht_scores:
-            s=[int(p) for p in score.split('-')]; ht_gs+=s[0]; ht_gc+=s[1]
-            if s[0]>s[1]: ht_w+=1
-            elif s[0]==s[1]: ht_d+=1
-            else: ht_l+=1
-        
-        at_gs,at_gc,at_w,at_d,at_l = 0,0,0,0,0
-        for score in at_scores:
-            s=[int(p) for p in score.split('-')]; at_gs+=s[0]; at_gc+=s[1]
-            if s[0]>s[1]: at_w+=1
-            elif s[0]==s[1]: at_d+=1
-            else: at_l+=1
-        
-        # PERBAIKAN: Hitung rasio H2H dari input jumlah kemenangan
-        h2h_wins = int(data.get('h2h_wins', 0))
-        h2h_win_rate = h2h_wins / 5.0 # Diasumsikan selalu dari 5 pertandingan
+        # --- Ambil input total ---
+        ht_gs = int(data['ht_gs']); ht_gc = int(data['ht_gc'])
+        ht_w = int(data['ht_w']); ht_d = int(data['ht_d']); ht_l = int(data['ht_l'])
+        at_gs = int(data['at_gs']); at_gc = int(data['at_gc'])
+        at_w = int(data['at_w']); at_d = int(data['at_d']); at_l = int(data['at_l'])
 
-        num_matches=5.0
+        h2h_wins = int(data.get('h2h_wins', 0))
+        h2h_win_rate = h2h_wins / 5.0
+
+        num_matches = 5.0
         manual_inputs = {
-            'Avg_HT_GS': ht_gs/num_matches, 'Avg_HT_GC': ht_gc/num_matches, 'HT_Wins': ht_w, 'HT_Draws': ht_d, 'HT_Losses': ht_l,
-            'Avg_AT_GS': at_gs/num_matches, 'Avg_AT_GC': at_gc/num_matches, 'AT_Wins': at_w, 'AT_Draws': at_d, 'AT_Losses': at_l,
+            'Avg_HT_GS': ht_gs / num_matches,
+            'Avg_HT_GC': ht_gc / num_matches,
+            'HT_Wins': ht_w, 'HT_Draws': ht_d, 'HT_Losses': ht_l,
+            'Avg_AT_GS': at_gs / num_matches,
+            'Avg_AT_GC': at_gc / num_matches,
+            'AT_Wins': at_w, 'AT_Draws': at_d, 'AT_Losses': at_l,
             'H2H_HT_Win_Rate': h2h_win_rate,
-            'AHh': float(data.get('ahh', 0)), 'AvgAHH': float(data.get('avg_ahh', 0)), 'AvgAHA': float(data.get('avg_aha', 0))
+            'AHh': float(data.get('ahh', 0)),
+            'AvgAHH': float(data.get('avg_ahh', 0)),
+            'AvgAHA': float(data.get('avg_aha', 0))
         }
-        
-        odds_h,odds_d,odds_a=float(data['odds_h']),float(data['odds_d']),float(data['odds_a'])
-        prob_h,prob_d,prob_a=1/odds_h,1/odds_d,1/odds_a
-        total_prob_hda=prob_h+prob_d+prob_a
-        manual_inputs['Norm_Prob_H'],manual_inputs['Norm_Prob_D'],manual_inputs['Norm_Prob_A']=prob_h/total_prob_hda,prob_d/total_prob_hda,prob_a/total_prob_hda
-        
-        odds_over,odds_under=float(data['odds_over_2_5']),float(data['odds_under_2_5'])
-        prob_over,prob_under=1/odds_over,1/odds_under
-        total_prob_ou=prob_over+prob_under
-        manual_inputs['Norm_Prob_Over'],manual_inputs['Norm_Prob_Under']=prob_over/total_prob_ou,prob_under/total_prob_ou
-        
+
+        # --- Odds HDA ---
+        odds_h, odds_d, odds_a = float(data['odds_h']), float(data['odds_d']), float(data['odds_a'])
+        prob_h, prob_d, prob_a = 1/odds_h, 1/odds_d, 1/odds_a
+        total_prob_hda = prob_h + prob_d + prob_a
+        manual_inputs['Norm_Prob_H'], manual_inputs['Norm_Prob_D'], manual_inputs['Norm_Prob_A'] = (
+            prob_h/total_prob_hda, prob_d/total_prob_hda, prob_a/total_prob_hda
+        )
+
+        # --- Odds OU ---
+        odds_over, odds_under = float(data['odds_over_2_5']), float(data['odds_under_2_5'])
+        prob_over, prob_under = 1/odds_over, 1/odds_under
+        total_prob_ou = prob_over + prob_under
+        manual_inputs['Norm_Prob_Over'], manual_inputs['Norm_Prob_Under'] = prob_over/total_prob_ou, prob_under/total_prob_ou
+
+        # --- Buat fitur dataframe ---
         features = features_dict[liga_name]
         feature_vector = pd.DataFrame([manual_inputs])[features]
         feature_vector.fillna(0, inplace=True)
@@ -109,7 +108,7 @@ def predict():
         pred_btts_proba = models[liga_name]['btts'].predict_proba(X_scaled_btts)[0]
         pred_btts_label = 'Yes' if pred_btts_proba[1] > 0.5 else 'No'
         pred_btts_confidence = pred_btts_proba[1] if pred_btts_label == 'Yes' else pred_btts_proba[0]
-        
+
         return jsonify({
             "prediksi_hda": f"{pred_hda_label} ({pred_hda_confidence:.0%})",
             "prediksi_ou": f"{pred_ou_label} ({pred_ou_confidence:.0%})",
@@ -122,4 +121,3 @@ def predict():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8000))
     app.run(debug=False, host='0.0.0.0', port=port)
-
