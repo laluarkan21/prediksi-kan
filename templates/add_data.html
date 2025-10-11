@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tambah Data Pertandingan</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='add_data.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Tambah Data Pertandingan Baru</h1>
+
+        <div class="top-actions">
+            <a href="{{ url_for('index') }}" class="btn-link">🏠Prediksi</a>
+            <button id="toggleThemeBtn">🌙 Mode</button>
+        </div>
+
+        <!-- Pilih Liga -->
+        <div class="form-group">
+            <label for="leagueSelect">Pilih Liga</label>
+            <select id="leagueSelect">
+                <option value="">-- Pilih Liga --</option>
+            </select>
+        </div>
+
+        <!-- Upload File CSV -->
+        <div class="form-group">
+            <label for="csvFile">Unggah File CSV Pertandingan</label>
+            <input type="file" id="csvFile" accept=".csv">
+        </div>
+
+        <!-- Tabel Data Baru -->
+        <div class="form-group">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>HomeTeam</th>
+                        <th>AwayTeam</th>
+                        <th>FTHG</th>
+                        <th>FTAG</th>
+                        <th>FTR</th>
+                        <th>AvgH</th>
+                        <th>AvgD</th>
+                        <th>AvgA</th>
+                        <th>Avg&gt;2.5</th>
+                        <th>Avg&lt;2.5</th>
+                        <th>HomeTeamElo</th>
+                        <th>AwayTeamElo</th>
+                        <th>EloDifference</th>
+                        <th>Home_AvgGoalsScored</th>
+                        <th>Home_AvgGoalsConceded</th>
+                        <th>Home_Wins</th>
+                        <th>Home_Draws</th>
+                        <th>Home_Losses</th>
+                        <th>Away_AvgGoalsScored</th>
+                        <th>Away_AvgGoalsConceded</th>
+                        <th>Away_Wins</th>
+                        <th>Away_Draws</th>
+                        <th>Away_Losses</th>
+                        <th>HTH_HomeWins</th>
+                        <th>HTH_AwayWins</th>
+                        <th>HTH_Draws</th>
+                        <th>HTH_AvgHomeGoals</th>
+                        <th>HTH_AvgAwayGoals</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Data akan muncul di sini melalui JS -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Tombol Simpan -->
+        <button id="saveBtn">Simpan Data Baru</button>
+    </div>
+
+    <script src="{{ url_for('static', filename='add_data.js') }}"></script>
+</body>
+</html>

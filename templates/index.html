@@ -3,122 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prediksi Pertandingan Multi-Liga</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <title>Prediksi Pertandingan Sepak Bola</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Football Predictor</h1>
-        </header>
-        <form id="prediction-form">
-            <fieldset>
-                <legend>Prediksi Liga</legend>
-                <div class="input-group">
-                    <label for="liga">Pilih Liga</label>
-                    <select id="liga" required>
-                        <option value="" disabled selected>-- Pilih Liga --</option>
-                        {% for league in leagues %}
-                            <option value="{{ league }}">{{ league.replace('dataset_', '').replace('_', ' ')|title }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </fieldset>
+<div class="container">
+    <h1>Prediksi Pertandingan Sepak Bola</h1>
 
-            <div class="form-section">
-            <fieldset>
-                <legend>Statistik Tuan Rumah</legend>
-                <p class="instruction">Statistik 5 laga terakhir</p>
-                <div class="input-group">
-                    <label for="ht_gs">Gol Dicetak</label>
-                    <input type="number" id="ht_gs" min="0" placeholder="....." required>
+    <a href="{{ url_for('add_data_page') }}" class="btn-link">➕ Tambah Data Baru</a>
+
+    <!-- Pilihan liga dan tim -->
+    <div class="form-group">
+        <label for="League">Liga</label>
+        <select id="League" class="input-field">
+            <option value="">Pilih liga...</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="HomeTeam">Home</label>
+        <select id="HomeTeam" class="input-field" disabled>
+            <option value="">Pilih tim kandang...</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="AwayTeam">Away</label>
+        <select id="AwayTeam" class="input-field" disabled>
+            <option value="">Pilih tim tandang...</option>
+        </select>
+    </div>
+
+    <div id="feature-section" class="hidden">
+        <h2>📊 Fitur Pertandingan</h2>
+
+        <!-- ELO -->
+        <div class="elo-section">
+            <div class="grid">
+                <div class="input-wrapper">
+                    <label for="HomeTeamElo">Elo Home</label>
+                    <input id="HomeTeamElo" class="auto-input" placeholder="Elo tim kandang">
                 </div>
-                <div class="input-group">
-                    <label for="ht_gc">Gol Kebobolan</label>
-                    <input type="number" id="ht_gc" min="0" placeholder="....." required>
+                <div class="input-wrapper">
+                    <label for="AwayTeamElo">Elo Away</label>
+                    <input id="AwayTeamElo" class="auto-input" placeholder="Elo tim tandang">
                 </div>
-                <div class="input-group">
-                    <label for="ht_w">Menang</label>
-                    <input type="number" id="ht_w" min="0" max="5" placeholder="....." required>
-                </div>
-                <div class="input-group">
-                    <label for="ht_d">Seri</label>
-                    <input type="number" id="ht_d" min="0" max="5" placeholder="....." required>
-                </div>
-                <div class="input-group">
-                    <label for="ht_l">Kalah</label>
-                    <input type="number" id="ht_l" min="0" max="5" placeholder="....." required>
-                </div>
-            </fieldset>
-            <fieldset>
-                <legend>Statistik Tamu</legend>
-                <p class="instruction">Statistik 5 laga terakhir</p>
-                <div class="input-group">
-                    <label for="at_gs">Gol Dicetak</label>
-                    <input type="number" id="at_gs" min="0" placeholder="....." required>
-                </div>
-                <div class="input-group">
-                    <label for="at_gc">Gol Kebobolan</label>
-                    <input type="number" id="at_gc" min="0" placeholder="....." required>
-                </div>
-                <div class="input-group">
-                    <label for="at_w">Menang</label>
-                    <input type="number" id="at_w" min="0" max="5" placeholder="....." required>
-                </div>
-                <div class="input-group">
-                    <label for="at_d">Seri</label>
-                    <input type="number" id="at_d" min="0" max="5" placeholder="....." required>
-                </div>
-                <div class="input-group">
-                    <label for="at_l">Kalah</label>
-                    <input type="number" id="at_l" min="0" max="5" placeholder="....." required>
-                </div>
-            </fieldset>
+            </div>
+            <div class="input-wrapper" style="max-width:350px;margin:18px auto 0 auto;">
+                <label for="EloDifference">Selisih Elo</label>
+                <input id="EloDifference" class="auto-input" placeholder="EloDifference">
+            </div>
         </div>
 
-            
-            <fieldset>
-                <legend>Data Tambahan & Odds</legend>
-                <div class="odds-grid">
-                    <div class="input-group"><label for="h2h_wins">Kemenangan H2H (5 match)</label><input type="number" id="h2h_wins" placeholder="Home menang" min="0" max="5" required></div>
-                    <div class="input-group"><label for="ahh">Handicap (AHh)</label><input type="number" step="0.01" id="ahh" placeholder="Balance HDP" required></div>
-                    <div class="input-group"><label for="odds_h">Odds Home (1)</label><input type="number" step="0.01" id="odds_h" placeholder="Odds" required></div>
-                    <div class="input-group"><label for="odds_d">Odds Draw (X)</label><input type="number" step="0.01" id="odds_d" placeholder="Odds" required></div>
-                    <div class="input-group"><label for="odds_a">Odds Away (2)</label><input type="number" step="0.01" id="odds_a" placeholder="Odds" required></div>
-                    <div class="input-group"><label for="odds_over_2_5">Odds Over 2.5</label><input type="number" step="0.01" id="odds_over_2_5" placeholder="Odds" required></div>
-                    <div class="input-group"><label for="odds_under_2_5">Odds Under 2.5</label><input type="number" step="0.01" id="odds_under_2_5" placeholder="Odds" required></div>
-                    <div class="input-group"><label for="avg_ahh">Odds HDP Home</label><input type="number" step="0.01" id="avg_ahh" placeholder="Odds" required></div>
-                    <div class="input-group"><label for="avg_aha">Odds HDP Away</label><input type="number" step="0.01" id="avg_aha" placeholder="Odds" required></div>
+        <!-- Statistik -->
+        <div class="stats-section">
+            <div class="grid stats-grid">
+                <div>
+                    <h3 class="stats-title">Statistik Tim Home</h3>
+                    <div class="input-wrapper"><label for="Home_AvgGoalsScored">Gol Dicetak</label><input id="Home_AvgGoalsScored" class="auto-input"></div>
+                    <div class="input-wrapper"><label for="Home_AvgGoalsConceded">Gol Kebobolan</label><input id="Home_AvgGoalsConceded" class="auto-input"></div>
+                    <div class="input-wrapper"><label for="Home_Wins">Menang</label><input id="Home_Wins" class="auto-input"></div>
+                    <div class="input-wrapper"><label for="Home_Draws">Seri</label><input id="Home_Draws" class="auto-input"></div>
+                    <div class="input-wrapper"><label for="Home_Losses">Kalah</label><input id="Home_Losses" class="auto-input"></div>
                 </div>
-            </fieldset>
+                <div>
+                    <h3 class="stats-title">Statistik Tim Away</h3>
+                    <div class="input-wrapper"><label for="Away_AvgGoalsScored">Gol Dicetak</label><input id="Away_AvgGoalsScored" class="auto-input"></div>
+                    <div class="input-wrapper"><label for="Away_AvgGoalsConceded">Gol Kebobolan</label><input id="Away_AvgGoalsConceded" class="auto-input"></div>
+                    <div class="input-wrapper"><label for="Away_Wins">Menang</label><input id="Away_Wins" class="auto-input"></div>
+                    <div class="input-wrapper"><label for="Away_Draws">Seri</label><input id="Away_Draws" class="auto-input"></div>
+                    <div class="input-wrapper"><label for="Away_Losses">Kalah</label><input id="Away_Losses" class="auto-input"></div>
+                </div>
+            </div>
+        </div>
 
-            <button type="submit" id="predict-button"><span>Dapatkan Prediksi</span></button>
-        </form>
+        <!-- H2H -->
+        <div class="hth-section">
+            <h3 class="stats-title">Statistik H2H</h3>
+            <div class="grid hth-grid">
+                <div class="input-wrapper"><label for="HTH_HomeWins">Home Menang</label><input id="HTH_HomeWins" class="auto-input"></div>
+                <div class="input-wrapper"><label for="HTH_AwayWins">Away Menang</label><input id="HTH_AwayWins" class="auto-input"></div>
+                <div class="input-wrapper"><label for="HTH_Draws">Seri</label><input id="HTH_Draws" class="auto-input"></div>
+                <div class="input-wrapper"><label for="HTH_AvgHomeGoals">Gol Home</label><input id="HTH_AvgHomeGoals" class="auto-input"></div>
+                <div class="input-wrapper"><label for="HTH_AvgAwayGoals">Gol Away</label><input id="HTH_AvgAwayGoals" class="auto-input"></div>
+            </div>
+        </div>
 
-        <div id="loader" class="hidden"><div class="spinner"></div><p>Menganalisis...</p></div>
-        <div id="results-container" class="hidden">
-            <h2>Hasil Prediksi</h2>
-            <div class="result-item"><p>(H/D/A)</p><strong id="hda-result"></strong></div>
-            <div class="result-item"><p>Over/Under</p><strong id="ou-result"></strong></div>
-            <div class="result-item"><p>BTTS</p><strong id="btts-result"></strong></div>
+        <!-- Odds -->
+        <h3 class="odds-title">💰 Odds</h3>
+        <div class="odds-group">
+            <div class="input-wrapper"><label for="AvgH">Odds Home</label><input id="AvgH" class="auto-input"></div>
+            <div class="input-wrapper"><label for="AvgD">Odds Draw</label><input id="AvgD" class="auto-input"></div>
+            <div class="input-wrapper"><label for="AvgA">Odds Away</label><input id="AvgA" class="auto-input"></div>
+            <div class="input-wrapper"><label for="AvgOver25">Odds Over 2.5</label><input id="AvgOver25" class="auto-input"></div>
+            <div class="input-wrapper"><label for="AvgUnder25">Odds Under 2.5</label><input id="AvgUnder25" class="auto-input"></div>
+        </div>
+
+        <button id="PredictBtn">Prediksi Sekarang</button>
+    </div>
+
+    <!-- HASIL -->
+    <div id="result" class="hidden">
+        <h2>🏠 Hasil Prediksi</h2>
+        <p id="main-result"></p>
+
+        <h3>📈 Probabilitas</h3>
+        <div id="prob-bars">
+            <div class="prob-item">
+                <span>🏠 Home Win</span>
+                <div class="prob-bar"><div id="bar-home" class="bar home-bar"></div></div>
+                <span id="val-home">0%</span>
+            </div>
+            <div class="prob-item">
+                <span>🤝 Draw</span>
+                <div class="prob-bar"><div id="bar-draw" class="bar draw-bar"></div></div>
+                <span id="val-draw">0%</span>
+            </div>
+            <div class="prob-item">
+                <span>🚀 Away Win</span>
+                <div class="prob-bar"><div id="bar-away" class="bar away-bar"></div></div>
+                <span id="val-away">0%</span>
+            </div>
+
+            <hr style="margin: 20px 0; border-color: #333;">
+
+            <div class="prob-item">
+                <span>⚽ Over 2.5</span>
+                <div class="prob-bar"><div id="bar-over" class="bar over-bar"></div></div>
+                <span id="val-over">0%</span>
+            </div>
+            <div class="prob-item">
+                <span>🛡️ Under 2.5</span>
+                <div class="prob-bar"><div id="bar-under" class="bar under-bar"></div></div>
+                <span id="val-under">0%</span>
+            </div>
+            <div class="prob-item">
+                <span>🤝 BTTS (Both Teams To Score)</span>
+                <div class="prob-bar"><div id="bar-btts" class="bar btts-bar"></div></div>
+                <span id="val-btts">0%</span>
+            </div>
         </div>
     </div>
-    
-    <footer class="footer">
-        <p>&copy; 2025 - Lalu Naofal Arkan</p>
-        <div class="social-links">
-            <a href="https://www.linkedin.com/in/lalu-naofal-arkan/" target="_blank" aria-label="LinkedIn"><i class="fab fa-linkedin"></i></a>
-            <a href="https://www.instagram.com/laluarkann/" target="_blank" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
-            <a href="https://wa.me/6285333572747" target="_blank" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
-            <a href="mailto:lalunaufalarkan21@gmail.com" aria-label="Email"><i class="fas fa-envelope"></i></a>
-        </div>
-    </footer>
+</div>
 
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
