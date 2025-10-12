@@ -30,9 +30,28 @@ app = Flask(__name__, template_folder='templates', static_folder='static')
 # UTILITAS
 # ==========================================================
 def pretty_league_name(file_name):
+    """
+    Mengubah nama file dataset menjadi nama liga yang rapi untuk tampilan.
+    Contoh: 'dataset_serieA_1.csv' -> 'Serie A'
+    """
     name = file_name.replace('dataset_', '').replace('.csv', '')
-    name = name.replace('_1', '').replace('_', ' ').title()
-    return name
+    name = name.replace('_1', '')
+
+    # Buat penyesuaian khusus liga terkenal
+    special_cases = {
+        'seriea': 'Serie A',
+        'laliga': 'La Liga',
+        'premierleague': 'Premier League',
+        'bundesliga': 'Bundesliga',
+        'ligue1': 'Ligue 1'
+    }
+
+    key = name.lower().replace('_', '')  # serieA -> seriea
+    if key in special_cases:
+        return special_cases[key]
+    
+    # Default: ubah underscore jadi spasi dan title case
+    return name.replace('_', ' ').title()
 
 def file_name_from_pretty(league_display):
     base = league_display.lower().replace(' ', '_')
@@ -44,11 +63,22 @@ def list_leagues():
     return leagues
 
 def load_league_dataset_by_name(league_display):
-    league_file = file_name_from_pretty(league_display)
-    path = os.path.join(DATASET_DIR, f"{league_file}.csv")
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"Dataset '{league_display}' tidak ditemukan.")
-    df = pd.read_csv(path)
+    """
+    Cari file dataset secara case-insensitive.
+    """
+    files = glob.glob(os.path.join(DATASET_DIR, '*.csv'))
+    # lower semua untuk perbandingan
+    league_display_lower = league_display.lower().replace(' ', '_')
+    matched_file = None
+    for f in files:
+        fname = os.path.splitext(os.path.basename(f))[0].lower()
+        if league_display_lower in fname:
+            matched_file = f
+            break
+    if not matched_file:
+        raise FileNotFoundError(f"Dataset '{league_display}' tidak ditemukan di server.")
+    
+    df = pd.read_csv(matched_file)
     if 'Date' in df.columns:
         df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
     return df
@@ -281,16 +311,21 @@ def index():
 
 @app.route('/api/leagues')
 def api_leagues():
-    return jsonify({'status': 'ok', 'leagues': list_leagues()})
+    files = glob.glob(os.path.join(DATASET_DIR, '*.csv'))
+    leagues = [pretty_league_name(os.path.splitext(os.path.basename(f))[0]) for f in files]
+    return jsonify({'status': 'ok', 'leagues': leagues})
 
 @app.route('/api/teams')
 def api_teams():
     league = request.args.get('league')
     if not league:
         return jsonify({'status': 'error', 'message': 'parameter league diperlukan'}), 400
-    df = load_league_dataset_by_name(league)
-    teams = sorted(set(df['HomeTeam']).union(set(df['AwayTeam'])))
-    return jsonify({'status': 'ok', 'teams': teams})
+    try:
+        df = load_league_dataset_by_name(league)
+        teams = sorted(set(df['HomeTeam']).union(set(df['AwayTeam'])))
+        return jsonify({'status': 'ok', 'teams': teams})
+    except FileNotFoundError as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 404
 
 @app.route('/api/features', methods=['POST'])
 def api_features():
