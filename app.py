@@ -54,8 +54,15 @@ def pretty_league_name(file_name):
     return name.replace('_', ' ').title()
 
 def file_name_from_pretty(league_display):
-    base = league_display.lower().replace(' ', '_')
-    return f"dataset_{base}_1"
+    # Cari file di dataset folder yang mengandung nama liga (case-insensitive)
+    league_lower = league_display.lower().replace(' ', '')
+    files = glob.glob(os.path.join(DATASET_DIR, '*.csv'))
+    for f in files:
+        fname = os.path.splitext(os.path.basename(f))[0].lower().replace('_', '')
+        if league_lower in fname:
+            return os.path.splitext(os.path.basename(f))[0]
+    # fallback
+    return league_lower
 
 def list_leagues():
     files = glob.glob(os.path.join(DATASET_DIR, '*.csv'))
@@ -64,18 +71,19 @@ def list_leagues():
 
 def load_league_dataset_by_name(league_display):
     """
-    Cari file dataset secara case-insensitive.
+    Cari file dataset sesuai nama liga secara case-insensitive.
     """
+    league_lower = league_display.lower().replace(' ', '')
     files = glob.glob(os.path.join(DATASET_DIR, '*.csv'))
-    # lower semua untuk perbandingan
-    league_display_lower = league_display.lower().replace(' ', '_')
     matched_file = None
     for f in files:
-        fname = os.path.splitext(os.path.basename(f))[0].lower()
-        if league_display_lower in fname:
+        fname = os.path.splitext(os.path.basename(f))[0].lower().replace('_', '')
+        if league_lower in fname:
             matched_file = f
             break
     if not matched_file:
+        # debug: tampilkan file yang ada
+        print("Available dataset files:", [os.path.basename(f) for f in files])
         raise FileNotFoundError(f"Dataset '{league_display}' tidak ditemukan di server.")
     
     df = pd.read_csv(matched_file)

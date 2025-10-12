@@ -31,42 +31,71 @@ FEATURE_COLUMNS = [
 ]
 
 # ==============================================================================
+# UTILITAS (Tambahkan/Salin bagian ini)
+# ==============================================================================
+def pretty_league_name(file_name):
+    """
+    Mengubah nama file dataset menjadi nama liga yang rapi untuk tampilan.
+    Logika ini disalin dari app.py untuk memastikan konsistensi.
+    Contoh: 'dataset_serieA_1' -> 'Serie A'
+    """
+    name = file_name.replace('dataset_', '').replace('.csv', '')
+    name = name.replace('_1', '')
+
+    special_cases = {
+        'seriea': 'Serie A',
+        'laliga': 'La Liga',
+        'premierleague': 'Premier League',
+        'bundesliga': 'Bundesliga',
+        'ligue1': 'Ligue 1'
+    }
+
+    key = name.lower().replace('_', '')
+    if key in special_cases:
+        return special_cases[key]
+    
+    return name.replace('_', ' ').title()
+
+# ==============================================================================
 # FUNGSI UTAMA UNTUK MELATIH DAN MENGGEVALUASI SEMUA LIGA
 # ==============================================================================
+# GANTI FUNGSI LAMA ANDA DENGAN YANG INI
 def train_and_evaluate_all_leagues():
     print("🚀 Memulai proses training dan evaluasi untuk semua liga...")
     
     dataset_paths = glob.glob(os.path.join(DATASET_DIR, '*.csv'))
-    all_results = [] # Untuk menyimpan semua hasil akurasi
+    all_results = []
 
     if not dataset_paths:
         print(f"❌ ERROR: Tidak ada file dataset .csv yang ditemukan di folder '{DATASET_DIR}'.")
         return
 
-    # Pastikan direktori model ada
     os.makedirs(MODEL_DIR, exist_ok=True)
 
     for path in dataset_paths:
         try:
-            filename = os.path.basename(path)
-            # Logika untuk mendapatkan nama liga: Asumsi format: <prefix>_<league>_<suffix>.csv
-            parts = filename.split('_')
-            league_name = '_'.join(parts[1:-1]) if len(parts) > 2 else parts[1].replace('.csv', '')
+            filename_with_ext = os.path.basename(path)
             
-            print(f"\n{'='*20} PROCESSING LEAGUE: {league_name.upper()} {'='*20}")
+            # --- LOGIKA BARU UNTUK NAMA FOLDER YANG KONSISTEN ---
+            filename_base = os.path.splitext(filename_with_ext)[0] # e.g., 'dataset_laliga_1'
+            pretty_name = pretty_league_name(filename_base)       # e.g., 'La Liga'
+            league_folder_name = pretty_name.lower().replace(' ', '_') # e.g., 'la_liga'
+            # --- AKHIR LOGIKA BARU ---
+            
+            print(f"\n{'='*20} PROCESSING LEAGUE: {pretty_name.upper()} {'='*20}")
 
-            league_model_dir = os.path.join(MODEL_DIR, league_name)
+            league_model_dir = os.path.join(MODEL_DIR, league_folder_name)
             os.makedirs(league_model_dir, exist_ok=True)
 
             data = pd.read_csv(path)
-            print(f"✅ Berhasil memuat file: {filename}")
+            print(f"✅ Berhasil memuat file: {filename_with_ext}")
 
             data['TotalGoals'] = data['FTHG'] + data['FTAG']
             data['OverUnder2.5'] = np.where(data['TotalGoals'] > 2.5, 'Over', 'Under')
             data['BTTS'] = np.where((data['FTHG'] > 0) & (data['FTAG'] > 0), 'Yes', 'No')
 
             if not all(col in data.columns for col in FEATURE_COLUMNS):
-                print(f"⚠️  WARNING: Tidak semua fitur ditemukan di {filename}. Melewati liga ini.")
+                print(f"⚠️  WARNING: Tidak semua fitur ditemukan di {filename_with_ext}. Melewati liga ini.")
                 continue
 
             X = data[FEATURE_COLUMNS]
@@ -75,7 +104,6 @@ def train_and_evaluate_all_leagues():
             y_btts = data['BTTS']
 
             if X.isnull().sum().sum() > 0:
-                # Mengisi nilai NaN dengan rata-rata kolom
                 X = X.fillna(X.mean())
 
             WINDOW = 5
@@ -84,13 +112,11 @@ def train_and_evaluate_all_leagues():
             y_ou = y_ou.iloc[WINDOW:]
             y_btts = y_btts.iloc[WINDOW:]
             
-            # Memisahkan data menjadi set Latih dan Uji (80% / 20%)
             X_train, X_test, y_ftr_train, y_ftr_test = train_test_split(X, y_ftr, test_size=0.2, shuffle=False)
             _, _, y_ou_train, y_ou_test = train_test_split(X, y_ou, test_size=0.2, shuffle=False)
             _, _, y_btts_train, y_btts_test = train_test_split(X, y_btts, test_size=0.2, shuffle=False)
             print("✅ Data berhasil dipisah menjadi data latih (80%) dan uji (20%).")
 
-            # Preprocessing pada data latih
             scaler_eval = StandardScaler()
             X_train_scaled = scaler_eval.fit_transform(X_train)
             X_test_scaled = scaler_eval.transform(X_test)
@@ -107,7 +133,7 @@ def train_and_evaluate_all_leagues():
             model_hda.fit(X_train_scaled, y_ftr_train_encoded)
             y_pred_hda = model_hda.predict(X_test_scaled)
             acc_hda = accuracy_score(le_ftr_eval.transform(y_ftr_test), y_pred_hda)
-            print(f"   - Akurasi H/D/A (Random Forest): {acc_hda:.2%}")
+            print(f"   - Akurasi H/D/A (Random Forest): {acc_hda:.2%}")
             
             # Model BTTS -> Support Vector Machine
             param_grid_svm = {'C': [0.1, 1, 10], 'gamma': ['scale', 'auto']}
@@ -116,19 +142,17 @@ def train_and_evaluate_all_leagues():
             model_btts = search_btts.best_estimator_
             y_pred_btts = model_btts.predict(X_test_scaled)
             acc_btts = accuracy_score(le_btts_eval.transform(y_btts_test), y_pred_btts)
-            print(f"   - Akurasi BTTS (SVM): {acc_btts:.2%}")
+            print(f"   - Akurasi BTTS (SVM): {acc_btts:.2%}")
 
             # Model O/U 2.5 -> Random Forest
             model_ou25 = RandomForestClassifier(n_estimators=300, min_samples_split=5, min_samples_leaf=4, max_features='log2', max_depth=20, criterion='gini', random_state=42, n_jobs=-1)
             model_ou25.fit(X_train_scaled, y_ou_train_encoded)
             y_pred_ou25 = model_ou25.predict(X_test_scaled)
             acc_ou25 = accuracy_score(le_ou_eval.transform(y_ou_test), y_pred_ou25)
-            print(f"   - Akurasi O/U 2.5 (Random Forest): {acc_ou25:.2%}")
+            print(f"   - Akurasi O/U 2.5 (Random Forest): {acc_ou25:.2%}")
 
-            # Simpan hasil akurasi
-            all_results.append({'Liga': league_name.upper(), 'H/D/A (RF)': acc_hda, 'BTTS (SVM)': acc_btts, 'O/U 2.5 (RF)': acc_ou25})
+            all_results.append({'Liga': pretty_name.upper(), 'H/D/A (RF)': acc_hda, 'BTTS (SVM)': acc_btts, 'O/U 2.5 (RF)': acc_ou25})
 
-            # Melatih ulang model pada KESELURUHAN DATA untuk disimpan
             print("\n--- Melatih Ulang Model pada Keseluruhan Data ---")
             scaler_final = StandardScaler()
             X_scaled_final = scaler_final.fit_transform(X)
@@ -139,12 +163,10 @@ def train_and_evaluate_all_leagues():
             y_btts_encoded_final = le_btts_final.fit_transform(y_btts)
 
             model_hda.fit(X_scaled_final, y_ftr_encoded_final)
-            # Gunakan best_estimator_ dari GridSearchCV sebelumnya
             search_btts.best_estimator_.fit(X_scaled_final, y_btts_encoded_final) 
             model_ou25.fit(X_scaled_final, y_ou_encoded_final)
             print("✅ Model final berhasil dilatih ulang.")
 
-            # Menyimpan model dan artifak yang sudah dilatih ulang
             joblib.dump(model_hda, os.path.join(league_model_dir, 'model_hda.pkl'))
             joblib.dump(search_btts.best_estimator_, os.path.join(league_model_dir, 'model_btts.pkl'))
             joblib.dump(model_ou25, os.path.join(league_model_dir, 'model_ou25.pkl'))
@@ -153,13 +175,12 @@ def train_and_evaluate_all_leagues():
             joblib.dump(le_ou_final, os.path.join(league_model_dir, 'le_ou.pkl'))
             joblib.dump(le_btts_final, os.path.join(league_model_dir, 'le_btts.pkl'))
 
-            print(f"✨ Model final untuk {league_name.upper()} telah disimpan di '{league_model_dir}'.")
+            print(f"✨ Model final untuk {pretty_name.upper()} telah disimpan di '{league_model_dir}'.")
 
         except Exception as e:
-            print(f"❌ GAGAL memproses {filename}. Error: {e}")
+            print(f"❌ GAGAL memproses {filename_with_ext}. Error: {e}")
             continue
 
-    # Menampilkan tabel perbandingan akurasi akhir
     if all_results:
         print(f"\n\n{'='*25} PERBANDINGAN AKURASI AKHIR {'='*25}")
         results_df = pd.DataFrame(all_results).set_index('Liga')

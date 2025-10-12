@@ -1,22 +1,73 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
 body {
     font-family: 'Segoe UI', sans-serif;
     background-color: #0d1117;
     color: #e6edf3;
+    min-height: 100vh;
     display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    height: 100%;
-    margin: 0;
-    padding: 40px 0;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    min-width: 100vw;
+    box-sizing: border-box;
 }
 
 .container {
     background: #161b22;
     padding: 30px;
-    border-radius: 14px;
+    border-radius: 18px;
     width: 90%;
     max-width: 850px;
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
+    box-shadow: 0 8px 32px 0 rgba(0,0,0,0.25), 0 1.5px 8px 0 rgba(255,255,255,0.04);
+    position: relative;
+    z-index: 2;
+    margin: 48px auto 32px auto;
+}
+/* Footer styles */
+.main-footer {
+    width: 100vw;
+    background: #0d1117;
+    color: #aaa;
+    text-align: center;
+    padding: 28px 0 18px 0;
+    font-size: 1rem;
+    box-shadow: none;
+    border-radius: 0;
+    position: relative;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-top: auto;
+}
+.footer-copyright {
+    margin-bottom: 20px;
+    font-size: 1rem;
+    letter-spacing: 0.5px;
+}
+.footer-social {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 22px;
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+.footer-icon img {
+    width: 32px;
+    height: 32px;
+    filter: grayscale(0.5) brightness(0.9);
+    transition: filter 0.2s, transform 0.2s;
+    vertical-align: middle;
+}
+.footer-icon:hover img {
+    filter: none;
+    transform: scale(1.13);
 }
 
 h1 {
@@ -248,6 +299,7 @@ button:hover {
 @media (max-width: 900px) {
     .container {
         padding: 16px;
+        margin: 24px auto 64px auto;
     }
     .grid, .odds-group, .stats-grid, .hth-grid {
         grid-template-columns: 1fr;
@@ -263,6 +315,14 @@ button:hover {
     .prob-item span:first-child {
         width: 100px;
         font-size: 0.9rem;
+    }
+    .main-footer {
+        font-size: 0.95rem;
+        padding: 20px 0 12px 0;
+    }
+    .footer-icon img {
+        width: 26px;
+        height: 26px;
     }
 }
 
@@ -289,3 +349,20 @@ button:hover {
     background-color: #2980b9;
     box-shadow: 0 6px 10px rgba(0,0,0,0.15);
 }
+
+.note {
+    background-color: #fff3cd;   /* kuning lembut */
+    color: #856404;              /* teks coklat gelap */
+    border-left: 4px solid #ffeeba;
+    padding: 10px 15px;
+    margin: 15px 0;
+    border-radius: 5px;
+    font-size: 0.95rem;
+}
+
+.note-elo {
+    font-size: 0.85rem;
+    color: #f39c12; /* oranye/kuning */
+    margin-bottom: 8px;
+}
+

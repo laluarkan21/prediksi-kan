@@ -11,6 +11,11 @@
 <div class="container">
     <h1>Prediksi Pertandingan Sepak Bola</h1>
 
+    <div class="note">
+        ⚠️ Catatan: Prediksi otomatis saat ini mendukung 5 liga utama (Serie A, La Liga, Premier League, Bundesliga, Ligue 1). 
+        Untuk liga lainnya, silakan masukkan data Elo tim secara manual atau biarkan default.
+    </div>
+
     <a href="{{ url_for('add_data_page') }}" class="btn-link">➕ Tambah Data Baru</a>
 
     <!-- Pilihan liga dan tim -->
@@ -37,7 +42,9 @@
 
     <div id="feature-section" class="hidden">
         <h2>📊 Fitur Pertandingan</h2>
-
+        <div class="note-elo" style="margin-bottom:10px; font-size:0.9rem; color:#f39c12;">
+            ⚠️ ELO digunakan untuk menilai kekuatan tim. Untuk liga yang sudah tersedia (5 liga utama), ELO dihitung otomatis. Untuk liga lain, Anda bisa memasukkan nilai ELO sendiri (default 1500).
+        </div>
         <!-- ELO -->
         <div class="elo-section">
             <div class="grid">
@@ -98,6 +105,7 @@
             <div class="input-wrapper"><label for="AvgA">Odds Away</label><input id="AvgA" class="auto-input"></div>
             <div class="input-wrapper"><label for="AvgOver25">Odds Over 2.5</label><input id="AvgOver25" class="auto-input"></div>
             <div class="input-wrapper"><label for="AvgUnder25">Odds Under 2.5</label><input id="AvgUnder25" class="auto-input"></div>
+
         </div>
 
         <button id="PredictBtn">Prediksi Sekarang</button>
@@ -148,5 +156,22 @@
 </div>
 
 <script src="{{ url_for('static', filename='script.js') }}"></script>
+</div> <!-- end .container -->
+
+<!-- Footer -->
+<footer class="main-footer">
+    <div class="footer-copyright">&copy; 2025 Lalu Naufal Arkan. All rights reserved.</div>
+    <div class="footer-social">
+        <a href="https://wa.me/6281234567890" target="_blank" title="WhatsApp" class="footer-icon">
+            <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/whatsapp.svg" alt="WhatsApp" />
+        </a>
+        <a href="https://instagram.com/username" target="_blank" title="Instagram" class="footer-icon">
+            <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/instagram.svg" alt="Instagram" />
+        </a>
+        <a href="mailto:emailanda@email.com" title="Email" class="footer-icon">
+            <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/maildotru.svg" alt="Email" />
+        </a>
+    </div>
+</footer>
 </body>
 </html>
