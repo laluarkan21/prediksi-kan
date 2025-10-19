@@ -29,8 +29,7 @@ if not all([app.config['SECRET_KEY'], app.config['GOOGLE_CLIENT_ID'],
     raise ValueError("Satu atau lebih environment variable (SECRET_KEY, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, ADMIN_EMAIL) belum di-set.")
 
 # --- Konfigurasi Database ---
-basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'app.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -530,6 +529,6 @@ if __name__ == '__main__':
     os.makedirs(DATASET_DIR, exist_ok=True)
     with app.app_context():
         db.create_all()
-        print("Database 'app.db' telah dicek/dibuat.")
-    # Jangan gunakan debug=True di production
-    app.run(host='0.0.0.0', port=8000)
+        print("Database telah dicek/dibuat.")
+    # Gunakan host dan port sesuai Render (port bisa di-set via Render)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8000)))
