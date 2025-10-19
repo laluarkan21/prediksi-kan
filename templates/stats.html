@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediksi Pertandingan Sepak Bola</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/stats.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+</head>
+<body>
+{% include 'navbar.html' %}
+<div class="stats-container">
+  <h1>📊 Statistik Tim</h1>
+  <div class="controls">
+    <label for="league-select">Liga</label>
+    <select id="league-select" class="input-select"></select>
+    
+    <label for="team-select">Tim</label>
+    <select id="team-select" class="input-select"></select>
+    
+    <button id="load-stats" class="btn-primary">Tampilkan Statistik</button>
+  </div>
+
+  <div id="team-stats" class="team-stats">
+    Pilih liga dan tim untuk melihat statistik.
+  </div>
+</div>
+
+<footer class="main-footer">
+    <div class="footer-copyright">&copy; 2025 Prediksi-Kan. All rights reserved.</div>
+</footer>
+<script src="{{ url_for('static', filename='js/stats.js') }}"></script>
+</body>
+</head>

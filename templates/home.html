@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediksi Pertandingan Sepak Bola</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+</head>
+<body>
+{% include 'navbar.html' %}
+<div class="flash-container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          {% if category == 'success' or category == 'info' %}
+            <div class="flash-msg flash-{{ category }}">{{ message }}</div>
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+<div class="home-container">
+  <header class="hero">
+    <h1>Selamat datang di Prediksi-Kan</h1>
+    <p>Lihat prediksi terbaru, statistik tim, dan dukung pengembangan.</p>
+    <div class="hero-actions">
+      <a class="btn" href="/index">Prediksi Sekarang</a>
+      <a class="btn sawer" href="https://saweria.co/prediksikan" target="_blank">Dukung Kami</a>
+    </div>
+  </header>
+
+  {% if not current_user.is_authenticated %}
+  <section class="login-prompt">
+      <h2>Simpan Riwayat Prediksi Anda! 📝</h2>
+      <p>Ingin melihat kembali prediksi yang pernah Anda buat? Login dengan akun Google Anda untuk menyimpan riwayat secara otomatis.</p>
+      <a href="{{ url_for('auth_google') }}" class="btn">Login dengan Google</a>
+  </section>
+  {% endif %}
+  {% if current_user.is_authenticated %}
+  <section class="history">
+    <h2>Riwayat Prediksi</h2>
+    <div id="history-list">(Memuat riwayat...)</div>
+    <div class="history-actions">
+      <button id="clear-history" class="btn small">Bersihkan Riwayat</button>
+    </div>
+  </section>
+  {% endif %}
+
+
+  <section class="about">
+    <h2>Tentang Aplikasi Prediksi-Kan</h2>
+    <p>
+      <strong>Prediksi-Kan</strong> adalah aplikasi web yang membantu kamu memprediksi hasil pertandingan sepak bola
+      menggunakan model machine learning. Dirancang agar mudah digunakan, hasil analisis ditampilkan secara interaktif
+      dengan antarmuka yang bersih dan ringan.
+    </p>
+  </section>
+
+  <section class="how-it-works">
+    <h2>Cara Kerja Prediksi</h2>
+    <ol>
+      <li>Pilih liga dan tim yang ingin kamu analisis di halaman <strong>Prediksi</strong>.</li>
+      <li>Data dimasukkan ke dalam model pembelajaran mesin yang telah dilatih.</li>
+      <li>Hasil prediksi ditampilkan langsung dan disimpan ke dalam riwayat (jika Anda login).</li>
+    </ol>
+    <p>Kamu juga bisa memantau performa prediksi di halaman <strong>Statistik</strong>.</p>
+  </section>
+</div>
+
+<footer class="main-footer">
+    <div class="footer-copyright">&copy; 2025 Prediksi-Kan. All rights reserved.</div>
+</footer>
+
+<script src="{{ url_for('static', filename='js/home.js') }}"></script>
+
+</body>
+</html>

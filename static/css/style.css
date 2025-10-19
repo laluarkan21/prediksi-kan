@@ -5,13 +5,13 @@ html, body {
 }
 body {
     font-family: 'Segoe UI', sans-serif;
-    background-color: #0d1117;
+    background-color: #0b1220;
     color: #e6edf3;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    align-items: center;
+    /* 'align-items: center;' DIHAPUS DARI SINI */
     min-width: 100vw;
     box-sizing: border-box;
 }
@@ -30,7 +30,7 @@ body {
 /* Footer styles */
 .main-footer {
     width: 100vw;
-    background: #0d1117;
+    background: #0b1220;
     color: #aaa;
     text-align: center;
     padding: 28px 0 18px 0;
@@ -71,13 +71,13 @@ body {
 }
 
 h1 {
-    color: #ffcc00;
+    color: #06b6d4;
     text-align: center;
     margin-bottom: 25px;
 }
 
 h2, h3 {
-    color: #fff;
+    color: #06b6d4;
     margin-top: 25px;
     margin-bottom: 15px;
 }
@@ -141,8 +141,8 @@ label {
     outline: none;
 }
 
-button {
-    background: #ffcc00;
+#PredictBtn {
+    background: #06b6d4;
     border: none;
     color: #000;
     font-weight: bold;
@@ -155,7 +155,7 @@ button {
 }
 
 button:hover {
-    background: #ffdd33;
+    background: #111827;
 }
 
 .hidden {
@@ -191,7 +191,7 @@ button:hover {
     gap: 24px;
 }
 .stats-title {
-    color: #ffcc00;
+    color: #06b6d4;
     font-size: 1.1rem;
     margin-bottom: 10px;
 }
@@ -223,7 +223,7 @@ button:hover {
 }
 
 .result-title {
-    color: #ffcc00;
+    color: #06b6d4;
     font-size: 1.2rem;
     margin-bottom: 10px;
     text-align: center;
@@ -238,7 +238,7 @@ button:hover {
 }
 
 .odds-title {
-    color: #ffcc00;
+    color: #06b6d4;
     margin-bottom: 8px;
 }
 
@@ -248,7 +248,7 @@ button:hover {
 }
 
 .prob-group h4 {
-    color: #ffcc00;
+    color: #06b6d4;
     margin-bottom: 8px;
 }
 
@@ -352,7 +352,7 @@ button:hover {
 
 .note {
     background-color: #fff3cd;   /* kuning lembut */
-    color: #856404;              /* teks coklat gelap */
+    color: #856404;           /* teks coklat gelap */
     border-left: 4px solid #ffeeba;
     padding: 10px 15px;
     margin: 15px 0;

@@ -141,5 +141,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             alert(`Gagal menyimpan: ${data.message}`);
         }
+        });
     });
-});
+
+    // Tambahkan ini di bagian paling bawah file JS kamu:
+function autoScrollTable() {
+  const tableContainer = document.querySelector('.table-container');
+  tableContainer.scrollTop = tableContainer.scrollHeight;
+}
+

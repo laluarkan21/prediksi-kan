@@ -6,13 +6,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const featureSection = document.getElementById('feature-section');
     const predictBtn = document.getElementById('PredictBtn');
     const resultEl = document.getElementById('result');
-    // Tambahkan elemen spinner jika ada di HTML Anda
     const loadingSpinner = document.getElementById('loading-spinner');
 
-    // ==========================================================
-    // VARIABEL KUNCI: Menyimpan data asli (rata-rata) dari server.
-    // Ini memperbaiki bug "hanya bisa sekali" dan membuat prediksi efisien.
-    // ==========================================================
     let currentFeatures = null;
 
     // ===================== LOAD LEAGUES =====================
@@ -67,30 +62,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         const j = await res.json();
         if (j.status === 'ok') {
-            // 1. Simpan data asli (rata-rata) ke variabel global
             currentFeatures = j.features;
-            // 2. Tampilkan data sebagai total di form
             fillFeatureInputsWithTotals(j.features);
         } else {
             throw new Error(j.message || 'Fitur gagal dimuat');
         }
     }
 
-    // ======================================================================
-    // FUNGSI INI MENGHITUNG TOTAL HANYA UNTUK TAMPILAN
-    // ======================================================================
+    // ===================== TAMPILKAN FITUR DI INPUT =====================
     function fillFeatureInputsWithTotals(features) {
         const displayData = { ...features };
-
         const home_matches = features.Home_Wins + features.Home_Draws + features.Home_Losses;
         const away_matches = features.Away_Wins + features.Away_Draws + features.Away_Losses;
         const hth_matches = features.HTH_HomeWins + features.HTH_AwayWins + features.HTH_Draws;
-        
         const home_count = home_matches > 0 ? home_matches : 5;
         const away_count = away_matches > 0 ? away_matches : 5;
         const hth_count = hth_matches > 0 ? hth_matches : 5;
 
-        // Ubah rata-rata menjadi total untuk ditampilkan
         displayData.Home_AvgGoalsScored = Math.round(features.Home_AvgGoalsScored * home_count);
         displayData.Home_AvgGoalsConceded = Math.round(features.Home_AvgGoalsConceded * home_count);
         displayData.Away_AvgGoalsScored = Math.round(features.Away_AvgGoalsScored * away_count);
@@ -99,16 +87,12 @@ document.addEventListener('DOMContentLoaded', () => {
         displayData.HTH_AvgAwayGoals = Math.round(features.HTH_AvgAwayGoals * hth_count);
 
         const featureIdMap = { 'Avg>2.5': 'AvgOver25', 'Avg<2.5': 'AvgUnder25' };
-
         for (const [key, val] of Object.entries(displayData)) {
             const elementId = featureIdMap[key] || key;
             const el = document.getElementById(elementId);
-            if (el) {
-                el.value = val;
-            }
+            if (el) el.value = val;
         }
 
-        // Kosongkan input odds agar bisa diisi manual
         ['AvgH', 'AvgD', 'AvgA', 'AvgOver25', 'AvgUnder25'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.value = '';
@@ -117,30 +101,21 @@ document.addEventListener('DOMContentLoaded', () => {
         featureSection.classList.remove('hidden');
     }
 
-    // ================================================================
-    // FUNGSI INI MENGAMBIL DATA BERSIH DAN MENAMBAHKAN ODDS MANUAL
-    // ================================================================
+    // ===================== AMBIL INPUT UNTUK PREDIKSI =====================
     function getFeaturesForPrediction() {
         if (!currentFeatures) {
             throw new Error('Fitur pertandingan belum dimuat. Silakan pilih tim terlebih dahulu.');
         }
-
-        // Mulai dengan data asli (rata-rata) yang bersih
         const featuresForPrediction = { ...currentFeatures };
-
-        // Timpa nilai odds dengan input manual dari pengguna
         featuresForPrediction.AvgH = parseFloat(document.getElementById('AvgH').value) || 0;
         featuresForPrediction.AvgD = parseFloat(document.getElementById('AvgD').value) || 0;
         featuresForPrediction.AvgA = parseFloat(document.getElementById('AvgA').value) || 0;
-        
-        // FIX: Gunakan ID yang benar ('AvgOver25') untuk mengambil nilai
         featuresForPrediction['Avg>2.5'] = parseFloat(document.getElementById('AvgOver25').value) || 0;
         featuresForPrediction['Avg<2.5'] = parseFloat(document.getElementById('AvgUnder25').value) || 0;
-
         return featuresForPrediction;
     }
 
-    // ===================== FUNGSI TAMPILAN (Tidak Berubah) =====================
+    // ===================== TAMPILKAN HASIL =====================
     function showPredictionResult(json) {
         if (!json || json.status !== 'ok' || !json.prediction) {
             resultEl.classList.remove('hidden');
@@ -150,18 +125,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const p = json.prediction;
         resultEl.classList.remove('hidden');
         resultEl.innerHTML = `
-      <div class="result-title">📊 Hasil Prediksi</div>
-      <div id="main-result">
-        🏠 (Home/Draw/Away): <b>${p.HDA?.label || '-'}</b><br>
-        ⚽ Over/Under 2.5: <b>${p.OU25?.label || '-'}</b><br>
-        🤝 BTTS: <b>${p.BTTS?.label || '-'}</b>
-      </div>
-      <div id="prob-bars" class="prob-section">
-        ${renderProbBlock('🏠 (Home / Draw / Away)', p.HDA?.probs)}
-        ${renderProbBlock('⚽ Over / Under 2.5', p.OU25?.probs)}
-        ${renderProbBlock('🤝 BTTS', p.BTTS?.probs)}
-      </div>
-    `;
+          <div class="result-title">📊 Hasil Prediksi</div>
+          <div id="main-result">
+            🏠 (Home/Draw/Away): <b>${p.HDA?.label || '-'}</b><br>
+            ⚽ Over/Under 2.5: <b>${p.OU25?.label || '-'}</b><br>
+            🤝 BTTS: <b>${p.BTTS?.label || '-'}</b>
+          </div>
+          <div id="prob-bars" class="prob-section">
+            ${renderProbBlock('🏠 (Home / Draw / Away)', p.HDA?.probs)}
+            ${renderProbBlock('⚽ Over / Under 2.5', p.OU25?.probs)}
+            ${renderProbBlock('🤝 BTTS', p.BTTS?.probs)}
+          </div>
+        `;
         animateBars();
     }
 
@@ -184,14 +159,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const percent = (val * 100).toFixed(1);
             const gradient = getGradientColor(percent);
             html += `
-        <div class="prob-item">
-            <span>${label}</span>
-            <div class="prob-bar">
-            <div class="bar" style="width:${percent}%; background:${gradient}"></div>
-            </div>
-            <span>${percent}%</span>
-        </div>
-        `;
+            <div class="prob-item">
+                <span>${label}</span>
+                <div class="prob-bar"><div class="bar" style="width:${percent}%; background:${gradient}"></div></div>
+                <span>${percent}%</span>
+            </div>`;
         }
         html += `</div>`;
         return html;
@@ -215,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadTeamsForLeague(league);
         featureSection.classList.add('hidden');
         resultEl.classList.add('hidden');
-        currentFeatures = null; // Reset data saat ganti liga
+        currentFeatures = null;
     });
 
     [homeEl, awayEl].forEach(sel => {
@@ -232,8 +204,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // 🧠 BAGIAN UTAMA: TAMBAHKAN PENYIMPANAN KE LOCALSTORAGE
     predictBtn.addEventListener('click', async () => {
-        // Logika untuk loading spinner
         predictBtn.disabled = true;
         if (loadingSpinner) loadingSpinner.classList.remove('hidden');
         resultEl.classList.add('hidden');
@@ -243,20 +215,41 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch('/api/predict', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ league: leagueEl.value, features })
+                // --- [PERUBAHAN DI SINI] ---
+                // Kita tambahkan home_team dan away_team untuk dikirim ke app.py
+                body: JSON.stringify({ 
+                    league: leagueEl.value, 
+                    features: features,
+                    home_team: homeEl.value,
+                    away_team: awayEl.value
+                })
+                // --- [AKHIR PERUBAHAN] ---
             });
             const json = await res.json();
+
+            // ✅ Simpan ke localStorage
+            if (json.status === 'ok' && json.prediction) {
+                const history = JSON.parse(localStorage.getItem('pred_history') || '[]');
+                const entry = {
+                    match: `${homeEl.value} vs ${awayEl.value}`,
+                    timestamp: new Date().toLocaleString(),
+                    HDA: { label: json.prediction.HDA?.label || '-' },
+                    OU25: { label: json.prediction.OU25?.label || '-' },
+                    BTTS: { label: json.prediction.BTTS?.label || '-' }
+                };
+                history.push(entry);
+                localStorage.setItem('pred_history', JSON.stringify(history));
+            }
+
             showPredictionResult(json);
         } catch (err) {
             alert('Terjadi kesalahan saat prediksi: ' + err.message);
             console.error(err);
         } finally {
-            // Sembunyikan spinner dan aktifkan kembali tombol
             predictBtn.disabled = false;
             if (loadingSpinner) loadingSpinner.classList.add('hidden');
         }
     });
 
-    // Inisialisasi
     loadLeagues();
 });

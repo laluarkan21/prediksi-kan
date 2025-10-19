@@ -4,10 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prediksi Pertandingan Sepak Bola</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
 </head>
 <body>
+{% include 'navbar.html' %}
 <div class="container">
     <h1>Prediksi Pertandingan Sepak Bola</h1>
 
@@ -18,7 +19,6 @@
 
     <a href="{{ url_for('add_data_page') }}" class="btn-link">➕ Tambah Data Baru</a>
 
-    <!-- Pilihan liga dan tim -->
     <div class="form-group">
         <label for="League">Liga</label>
         <select id="League" class="input-field">
@@ -45,7 +45,6 @@
         <div class="note-elo" style="margin-bottom:10px; font-size:0.9rem; color:#f39c12;">
             ⚠️ ELO digunakan untuk menilai kekuatan tim. Untuk liga yang sudah tersedia (5 liga utama), ELO dihitung otomatis. Untuk liga lain, Anda bisa memasukkan nilai ELO sendiri (default 1500).
         </div>
-        <!-- ELO -->
         <div class="elo-section">
             <div class="grid">
                 <div class="input-wrapper">
@@ -63,7 +62,6 @@
             </div>
         </div>
 
-        <!-- Statistik -->
         <div class="stats-section">
             <div class="grid stats-grid">
                 <div>
@@ -85,7 +83,6 @@
             </div>
         </div>
 
-        <!-- H2H -->
         <div class="hth-section">
             <h3 class="stats-title">Statistik H2H</h3>
             <div class="grid hth-grid">
@@ -97,7 +94,6 @@
             </div>
         </div>
 
-        <!-- Odds -->
         <h3 class="odds-title">💰 Odds</h3>
         <div class="odds-group">
             <div class="input-wrapper"><label for="AvgH">Odds Home</label><input id="AvgH" class="auto-input"></div>
@@ -111,7 +107,6 @@
         <button id="PredictBtn">Prediksi Sekarang</button>
     </div>
 
-    <!-- HASIL -->
     <div id="result" class="hidden">
         <h2>🏠 Hasil Prediksi</h2>
         <p id="main-result"></p>
@@ -153,13 +148,10 @@
             </div>
         </div>
     </div>
-</div>
-
-<script src="{{ url_for('static', filename='script.js') }}"></script>
-</div> <!-- end .container -->
-
-<!-- Footer -->
-<footer class="main-footer">
+    
+    <script src="{{ url_for('static', filename='js/home.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</div> <footer class="main-footer">
     <div class="footer-copyright">&copy; 2025 Prediksi-Kan. All rights reserved.</div>
 </footer>
 </body>

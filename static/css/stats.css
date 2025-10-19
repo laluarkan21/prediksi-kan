@@ -1,0 +1,136 @@
+body {
+  background-color: #0b1220;
+  color: #e6edf3;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+
+/* ===== Statistik Container ===== */
+.stats-container {
+  background-color: #111a2b;
+  border-radius: 12px;
+  max-width: 900px;
+  margin: 50px auto;
+  padding: 30px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+.stats-container h1 {
+  text-align: center;
+  color: #00c3ff;
+  font-weight: 700;
+  margin-bottom: 25px;
+}
+
+/* ===== Controls ===== */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+label {
+  font-weight: 600;
+  color: #c9d1d9;
+}
+
+.input-select {
+  background-color: #0d1117;
+  color: #fff;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 8px 12px;
+  min-width: 160px;
+}
+
+.btn-primary {
+  background-color: #00c16a;
+  border: none;
+  color: white;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.3s, transform 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: #00e77b;
+  transform: scale(1.05);
+}
+
+/* ===== Statistik Card ===== */
+.team-stats {
+  text-align: center;
+  font-size: 1rem;
+  color: #c9d1d9;
+}
+
+.stats-card {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.stat-item {
+  background-color: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  padding: 15px;
+  text-align: center;
+  transition: transform 0.2s;
+}
+
+.stat-item:hover {
+  transform: scale(1.05);
+  border-color: #00c3ff;
+}
+
+.stat-item strong {
+  display: block;
+  color: #00c3ff;
+  margin-bottom: 5px;
+  font-size: 0.95rem;
+}
+
+.stat-item div {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+/* Footer styles */
+.main-footer {
+    width: 100vw;
+    background: #0b1220;
+    color: #aaa;
+    text-align: center;
+    padding: 28px 0 18px 0;
+    font-size: 1rem;
+    box-shadow: none;
+    border-radius: 0;
+    position: relative;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-top: auto;
+}
+.footer-copyright {
+    margin-bottom: 20px;
+    font-size: 1rem;
+    letter-spacing: 0.5px;
+}
+
+@media (max-width: 700px) {
+  .stats-container {
+  margin: 10px 20px;
+  }
+}
