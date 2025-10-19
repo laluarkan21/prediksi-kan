@@ -13,6 +13,13 @@ body {
   margin: 0;
 }
 
+/* Kerapian Tata Letak: Kontainer Utama */
+.home-container {
+    max-width: 1000px; /* Batasi lebar maksimum */
+    margin: 0 auto; /* Tengah-kan kontainer */
+    padding: 20px; /* Tambahkan padding agar tidak menempel di tepi */
+}
+
 /* Hero section */
 .hero {
   background: linear-gradient(180deg, #0b1220, #071023);
@@ -34,6 +41,14 @@ body {
 
 .hero-actions {
   margin-top: 25px;
+}
+
+.hero .league-info {
+    padding: 10px 15px;
+    max-width: 500px;
+    margin: 20px auto; /* Tengah dan beri jarak */
+    font-size: 0.95rem;
+    font-weight: 600;
 }
 
 .btn {
@@ -157,6 +172,8 @@ body {
 .about p, .how-it-works p, .contact p, .how-it-works ol {
   color: #cbd5e1;
   line-height: 1.6;
+  /* RATA KIRI-KANAN */
+    text-align: justify;
 }
 
 .how-it-works ol {
@@ -305,6 +322,56 @@ body {
 
 .login-prompt .btn:hover {
   background: #0891b2; /* Aksen lebih gelap */
+}
+
+/* BAGIAN BARU: Saran/Feedback */
+.suggestion-link {
+    background: rgba(255, 255, 255, 0.05); /* Latar belakang abu-abu gelap transparan */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 15px 20px;
+    border-radius: 8px;
+    text-align: center;
+    margin: 32px auto 10px auto; /* Jarak atas lebih besar, bawah lebih kecil */
+    max-width: 700px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+}
+
+.suggestion-link p {
+    margin: 0;
+    color: #d1e7f5;
+    font-size: 0.95rem;
+}
+
+.suggestion-link .btn.small {
+    background: #484f58; /* Warna abu-abu yang lebih tenang */
+    color: white;
+}
+
+.suggestion-link .btn.small:hover {
+    background: #646c76;
+}
+
+/* Style untuk informasi liga di bagian 'About' */
+.about p.highlight-info {
+    background: rgba(15, 23, 42, 0.8); /* Warna gelap yang menonjol */
+    border-left: 4px solid var(--accent);
+    padding: 12px 15px;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+
+/* Responsif untuk suggestion-link */
+@media (max-width: 700px) {
+    .suggestion-link {
+        flex-direction: column;
+        gap: 10px;
+        margin: 20px 10px 10px 10px; /* Atur margin agar pas di layar kecil */
+    }
 }
 
 /* Responsif untuk layar kecil */

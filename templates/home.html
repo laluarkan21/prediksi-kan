@@ -25,12 +25,21 @@
   <header class="hero">
     <h1>Selamat datang di Prediksi-Kan</h1>
     <p>Lihat prediksi terbaru, statistik tim, dan dukung pengembangan.</p>
+    
+      <p class="league-info">
+      🏆 Kami FOKUS pada <strong>5 Liga Elite Eropa</strong>: Premier League, La Liga, Serie A, Bundesliga, & Ligue 1.
+    </p>
+    
     <div class="hero-actions">
       <a class="btn" href="/index">Prediksi Sekarang</a>
       <a class="btn sawer" href="https://saweria.co/prediksikan" target="_blank">Dukung Kami</a>
     </div>
   </header>
 
+  <section class="suggestion-link">
+      <p>Punya ide fitur atau menemukan *bug*? Bantu kami jadi lebih baik!</p>
+      <a href="https://saweria.co/prediksikan" target="_blank" class="btn small suggestion-btn">Kirim Saran Pengembangan</a>
+  </section>
   {% if not current_user.is_authenticated %}
   <section class="login-prompt">
       <h2>Simpan Riwayat Prediksi Anda! 📝</h2>
@@ -48,14 +57,13 @@
   </section>
   {% endif %}
 
-
   <section class="about">
-    <h2>Tentang Aplikasi Prediksi-Kan</h2>
-    <p>
-      <strong>Prediksi-Kan</strong> adalah aplikasi web yang membantu kamu memprediksi hasil pertandingan sepak bola
-      menggunakan model machine learning. Dirancang agar mudah digunakan, hasil analisis ditampilkan secara interaktif
-      dengan antarmuka yang bersih dan ringan.
-    </p>
+      <h2>Tentang Aplikasi Prediksi-Kan</h2>
+        <p>
+        <strong>Prediksi-Kan</strong> adalah aplikasi web yang membantu kamu memprediksi hasil pertandingan sepak bola
+        menggunakan model machine learning. Dirancang agar mudah digunakan, hasil analisis ditampilkan secara interaktif
+        dengan antarmuka yang bersih dan ringan.
+      </p>
   </section>
 
   <section class="how-it-works">
