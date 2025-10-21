@@ -315,6 +315,7 @@ def compute_features_from_dataset(df, home_team, away_team, window=5):
         'HTH_HomeWins':hth['HTH_HomeWins'],'HTH_AwayWins':hth['HTH_AwayWins'],'HTH_Draws':hth['HTH_Draws'],
         'HTH_AvgHomeGoals':hth['HTH_AvgHomeGoals'],'HTH_AvgAwayGoals':hth['HTH_AvgAwayGoals']
     }
+
 def format_float_clean(number):
     """
     Membulatkan angka ke 2 desimal, lalu mengkonversinya menjadi string
@@ -342,19 +343,41 @@ def update_elo_and_features(df_existing, df_new, window=5, K=30, initial_elo=150
         df_new['Date'] = pd.to_datetime(df_new['Date'], errors='coerce')
     # -----------------------------------------------------------------
 
-    # Penggabungan dan pengurutan (sekarang harusnya tidak error)
+    # Penggabungan dan pengurutan
     df_combined = pd.concat([df_existing, df_new], ignore_index=True).sort_values('Date').reset_index(drop=True)
     
     elo = {}
     new_rows = []
     
+    # -----------------------------------------------------------------
+    # 🟢 PERBAIKAN PERFORMA: Inisialisasi ELO dari data terakhir yang ada
+    # -----------------------------------------------------------------
+    if not df_existing.empty:
+        df_existing_last = df_existing.sort_values('Date', ascending=False)
+        all_teams = set(df_existing_last['HomeTeam']).union(set(df_existing_last['AwayTeam']))
+        
+        for team in all_teams:
+            # Cari baris terakhir tim bermain
+            last_game = df_existing_last[(df_existing_last['HomeTeam'] == team) | (df_existing_last['AwayTeam'] == team)]
+            if not last_game.empty:
+                row = last_game.iloc[0]
+                # Gunakan ELO terakhir yang dihitung di dataset lama
+                last_elo = row['HomeTeamElo'] if row['HomeTeam']==team else row['AwayTeamElo']
+                elo[team] = last_elo
+    
+    start_idx = len(df_existing)
+    
+    # Loop dimulai dari indeks yang mungkin mengandung data yang sudah ada
+    # Tetapi logika perhitungan fitur hanya akan digunakan untuk baris BARU (idx >= start_idx)
     for idx, row in df_combined.iterrows():
         home, away = row['HomeTeam'], row['AwayTeam']
-        h_elo = elo.get(home, initial_elo)
-        a_elo = elo.get(away, initial_elo)
+        
+        # Ambil ELO SEBELUM pertandingan ini
+        h_elo_pre = elo.get(home, initial_elo)
+        a_elo_pre = elo.get(away, initial_elo)
         
         # Perhitungan Expected Score ELO
-        E_h = 1/(1+10**((a_elo-h_elo)/400))
+        E_h = 1/(1+10**((a_elo_pre-h_elo_pre)/400))
         E_a = 1-E_h
         
         # Hasil Akhir Pertandingan
@@ -362,65 +385,69 @@ def update_elo_and_features(df_existing, df_new, window=5, K=30, initial_elo=150
         elif row['FTHG']<row['FTAG']: S_h,S_a=0,1
         else: S_h,S_a=0.5,0.5
         
-        # Pembaruan ELO
-        h_elo_new=h_elo+K*(S_h-E_h)
-        a_elo_new=a_elo+K*(S_a-E_a)
+        # Pembaruan ELO (untuk digunakan pada pertandingan berikutnya)
+        h_elo_new=h_elo_pre+K*(S_h-E_h)
+        a_elo_new=a_elo_pre+K*(S_a-E_a)
+        # Simpan ELO yang sudah diperbarui ke dictionary
         elo[home],elo[away]=h_elo_new,a_elo_new
         
-        # Hitung Fitur Berdasarkan Data MASA LALU (sebelum pertandingan saat ini)
-        df_past=df_combined.iloc[:idx]
-        home_stats=recent_stats_for_team(df_past, home, window)
-        away_stats=recent_stats_for_team(df_past, away, window)
-        
-        # Statistik Head-to-Head
-        hth_mask=((df_past['HomeTeam']==home)&(df_past['AwayTeam']==away))|((df_past['HomeTeam']==away)&(df_past['AwayTeam']==home))
-        hth=df_past[hth_mask].sort_values('Date', ascending=False).head(window)
-        hth_home_wins=hth_away_wins=hth_draws=0
-        
-        if not hth.empty:
-            for _, r in hth.iterrows():
-                if r['HomeTeam']==home:
-                    if r['FTHG']>r['FTAG']: hth_home_wins+=1
-                    elif r['FTHG']<r['FTAG']: hth_away_wins+=1
-                    else: hth_draws+=1
-            hth_avg_home_goals=float(hth['FTHG'].mean())
-            hth_avg_away_goals=float(hth['FTAG'].mean())
-        else: hth_avg_home_goals=hth_avg_away_goals=0
-
-        row_full = row.copy()
-
-        # -----------------------------------------------------------------
-        # 🟢 PERBAIKAN 2: Menyalin nilai Odds dari data CSV baru
-        # -----------------------------------------------------------------
-        odds_values = {}
-        # Kolom odds yang harus disalin dari input CSV
-        odds_cols = ['AvgH', 'AvgD', 'AvgA', 'Avg>2.5', 'Avg<2.5']
-        
-        for col in odds_cols:
-            # Cek apakah kolom ada di baris dan bukan NaN/None. Jika ada, salin nilainya.
-            # Jika tidak ada, biarkan kosong (sesuai format yang diharapkan)
-            if col in row and pd.notna(row[col]):
-                odds_values[col] = row[col]
-            else:
-                odds_values[col] = ''
-        # -----------------------------------------------------------------
-        
-        row_full.update({
-            'HomeTeamElo':h_elo_new,'AwayTeamElo':a_elo_new,'EloDifference':h_elo_new-a_elo_new,
-            'Home_AvgGoalsScored':home_stats['AvgGoalsScored'],'Home_AvgGoalsConceded':home_stats['AvgGoalsConceded'],
-            'Home_Wins':home_stats['Wins'],'Home_Draws':home_stats['Draws'],'Home_Losses':home_stats['Losses'],
-            'Away_AvgGoalsScored':away_stats['AvgGoalsScored'],'Away_AvgGoalsConceded':away_stats['AvgGoalsConceded'],
-            'Away_Wins':away_stats['Wins'],'Away_Draws':away_stats['Draws'],'Away_Losses':away_stats['Losses'],
-            'HTH_HomeWins':hth_home_wins,'HTH_AwayWins':hth_away_wins,'HTH_Draws':hth_draws,
-            'HTH_AvgHomeGoals':hth_avg_home_goals,'HTH_AvgAwayGoals':hth_avg_away_goals,
+        # HANYA hitung FITUR RUMIT (recent stats & HTH) untuk baris BARU (idx >= start_idx)
+        if idx >= start_idx:
+            # df_past hanya berisi data sebelum pertandingan saat ini
+            df_past=df_combined.iloc[:idx]
+            home_stats=recent_stats_for_team(df_past, home, window)
+            away_stats=recent_stats_for_team(df_past, away, window)
             
-        })
+            # Statistik Head-to-Head
+            hth_mask=((df_past['HomeTeam']==home)&(df_past['AwayTeam']==away))|((df_past['HomeTeam']==away)&(df_past['AwayTeam']==home))
+            hth=df_past[hth_mask].sort_values('Date', ascending=False).head(window)
+            hth_home_wins=hth_away_wins=hth_draws=0
+            home_goals=[]; away_goals=[]
+            
+            if not hth.empty:
+                for _, r in hth.iterrows():
+                    # Tentukan skor relatif terhadap HomeTeam pada pertandingan saat ini
+                    if r['HomeTeam']==home: h_g,a_g=r['FTHG'],r['FTAG']
+                    else: h_g,a_g=r['FTAG'],r['FTHG']
+                    home_goals.append(h_g); away_goals.append(a_g)
 
-        # Hanya kembalikan baris yang BARU diunggah (idx >= len(df_existing))
-        if idx >= len(df_existing):
+                    if h_g>a_g: hth_home_wins+=1
+                    elif h_g<a_g: hth_away_wins+=1
+                    else: hth_draws+=1
+                
+                # Perhitungan rata-rata gol (relatif terhadap tim saat ini)
+                hth_avg_home_goals=float(np.mean(home_goals))
+                hth_avg_away_goals=float(np.mean(away_goals))
+            else: hth_avg_home_goals=hth_avg_away_goals=0
+
+            row_full = row.copy()
+
+            # -----------------------------------------------------------------
+            # 🟢 PERBAIKAN 2: Menyalin nilai Odds dari data CSV baru
+            # -----------------------------------------------------------------
+            odds_values = {}
+            odds_cols = ['AvgH', 'AvgD', 'AvgA', 'Avg>2.5', 'Avg<2.5']
+            for col in odds_cols:
+                if col in row and pd.notna(row[col]): odds_values[col] = row[col]
+                else: odds_values[col] = ''
+            
+            row_full.update({
+                'HomeTeamElo':h_elo_new,'AwayTeamElo':a_elo_new,'EloDifference':h_elo_new-a_elo_new,
+                'Home_AvgGoalsScored':home_stats['AvgGoalsScored'],'Home_AvgGoalsConceded':home_stats['AvgGoalsConceded'],
+                'Home_Wins':home_stats['Wins'],'Home_Draws':home_stats['Draws'],'Home_Losses':home_stats['Losses'],
+                'Away_AvgGoalsScored':away_stats['AvgGoalsScored'],'Away_AvgGoalsConceded':away_stats['AvgGoalsConceded'],
+                'Away_Wins':away_stats['Wins'],'Away_Draws':away_stats['Draws'],'Away_Losses':away_stats['Losses'],
+                'HTH_HomeWins':hth_home_wins,'HTH_AwayWins':hth_away_wins,'HTH_Draws':hth_draws,
+                'HTH_AvgHomeGoals':hth_avg_home_goals,'HTH_AvgAwayGoals':hth_avg_away_goals,
+                # Tambahkan Odds ke row_full
+                **odds_values 
+            })
+
+            # Hanya kembalikan baris yang BARU diunggah
             new_rows.append(row_full)
             
     return pd.DataFrame(new_rows)
+
 
 # ==========================================================
 # ROUTES HALAMAN PREDIKSI (DIUBAH - login tidak wajib)
