@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
+    // --- Inisialisasi DOM Elements ---
     const leagueSelect = document.getElementById('leagueSelect');
     const csvFileInput = document.getElementById('csvFile');
     const dataTableBody = document.querySelector('#dataTable tbody');
@@ -9,6 +10,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     let selectedLeague = '';
     let newMatches = [];
 
+    // --- Inisialisasi Firebase (Wajib ada jika menggunakan Canvas) ---
+    // const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    // const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+    // const app = firebaseConfig ? initializeApp(firebaseConfig) : null;
+    // const db = app ? getFirestore(app) : null;
+    // const auth = app ? getAuth(app) : null;
+
+    // --- Fungsi Helper ---
+    function autoScrollTable() {
+        const tableContainer = document.querySelector('.table-container');
+        if (tableContainer) {
+            tableContainer.scrollTop = tableContainer.scrollHeight;
+        }
+    }
+    
     // ===== Mode Gelap / Terang =====
     // Default mode gelap
     body.classList.add('dark-mode');
@@ -20,15 +36,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 1. Ambil daftar liga
     async function loadLeagues() {
-        const res = await fetch('/api/leagues');
-        const data = await res.json();
-        if (data.status === 'ok') {
-            data.leagues.forEach(league => {
-                const option = document.createElement('option');
-                option.value = league;
-                option.textContent = league;
-                leagueSelect.appendChild(option);
-            });
+        try {
+            const res = await fetch('/api/leagues');
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            const data = await res.json();
+            
+            if (data.status === 'ok') {
+                data.leagues.forEach(league => {
+                    const option = document.createElement('option');
+                    option.value = league;
+                    option.textContent = league;
+                    leagueSelect.appendChild(option);
+                });
+            } else {
+                console.error("Gagal memuat liga:", data.message);
+            }
+        } catch (error) {
+            console.error('Fetch error during league load:', error);
+            // Tambahkan opsi default jika gagal
+            const option = document.createElement('option');
+            option.textContent = 'Gagal memuat liga';
+            option.disabled = true;
+            leagueSelect.appendChild(option);
         }
     }
 
@@ -40,7 +69,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         newMatches = [];
     });
 
-    // 2. Proses CSV
+    // 2. Proses CSV (Mengirim file langsung ke backend)
     csvFileInput.addEventListener('change', async (e) => {
         if (!selectedLeague) {
             alert('Pilih liga terlebih dahulu!');
@@ -51,69 +80,118 @@ document.addEventListener('DOMContentLoaded', async () => {
         const file = e.target.files[0];
         if (!file) return;
 
-        const text = await file.text();
-        const rows = text.split(/\r?\n/).filter(r => r.trim() !== '');
-        const headers = rows[0].split(',');
-
-        // Pastikan ada kolom HomeTeam dan AwayTeam
-        if (!headers.includes('HomeTeam') || !headers.includes('AwayTeam')) {
-            alert('CSV harus memiliki kolom HomeTeam dan AwayTeam!');
-            return;
-        }
-
-        const csvData = rows.slice(1).map(r => {
-            const vals = r.split(',');
-            let obj = {};
-            headers.forEach((h, i) => { obj[h] = vals[i]; });
-            return obj;
-        });
-
-        // Ambil dataset liga saat ini dari server
-        const res = await fetch(`/api/teams?league=${encodeURIComponent(selectedLeague)}`);
-        const teamsData = await res.json();
-        let existingTeams = teamsData.status === 'ok' ? teamsData.teams : [];
-
-        // Filter data baru (belum ada)
-        newMatches = csvData.filter(row => {
-            return !existingTeams.includes(row.HomeTeam) || !existingTeams.includes(row.AwayTeam) || !row.Date || !row.FTHG;
-        });
-
-        // Ambil fitur otomatis untuk setiap match baru
-        const featuresPromises = newMatches.map(async row => {
-            const resp = await fetch('/api/features', {
+        // Tampilkan indikator loading
+        saveBtn.textContent = 'Memproses Data...';
+        saveBtn.disabled = true;
+        dataTableBody.innerHTML = '<tr><td colspan="30" class="text-center py-4">Memproses dan menghitung fitur otomatis di server...</td></tr>';
+        
+        // Buat FormData untuk mengirim file
+        const formData = new FormData();
+        formData.append('league', selectedLeague);
+        formData.append('file', file);
+        
+        try {
+            // Panggil API upload_csv
+            const res = await fetch('/api/upload_csv', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    league: selectedLeague,
-                    home: row.HomeTeam,
-                    away: row.AwayTeam
-                })
+                body: formData // Kirim file
             });
-            const data = await resp.json();
-            return { ...row, ...data.features };
-        });
 
-        newMatches = await Promise.all(featuresPromises);
+            const data = await res.json();
+            
+            // Bersihkan tampilan loading
+            dataTableBody.innerHTML = '';
+            newMatches = [];
 
-        // Tampilkan di tabel
-        dataTableBody.innerHTML = '';
-        newMatches.forEach(match => {
-            const tr = document.createElement('tr');
-            const columns = [
-                'Date', 'HomeTeam', 'AwayTeam', 'FTHG', 'FTAG', 'FTR',
-                'AvgH', 'AvgD', 'AvgA', 'Avg>2.5', 'Avg<2.5',
-                'HomeTeamElo','AwayTeamElo','EloDifference',
-                'Home_AvgGoalsScored','Home_AvgGoalsConceded','Home_Wins','Home_Draws','Home_Losses',
-                'Away_AvgGoalsScored','Away_AvgGoalsConceded','Away_Wins','Away_Draws','Away_Losses',
-                'HTH_HomeWins','HTH_AwayWins','HTH_Draws','HTH_AvgHomeGoals','HTH_AvgAwayGoals'
-            ];
-            columns.forEach(col => {
-                const td = document.createElement('td');
-                td.textContent = match[col] !== undefined ? match[col] : '';
-                tr.appendChild(td);
-            });
-            dataTableBody.appendChild(tr);
-        });
+            if (data.status === 'ok') {
+                newMatches = data.matches || []; // Backend mengembalikan list matches baru
+                
+                if (newMatches.length === 0) {
+                    // Gunakan elemen UI daripada alert/prompt
+                    alert(data.message || 'Tidak ada pertandingan baru yang ditemukan.'); 
+                    dataTableBody.innerHTML = '<tr><td colspan="30" class="text-center py-4">Tidak ada pertandingan baru yang ditemukan.</td></tr>';
+                }
+                
+                // Tampilkan di tabel
+                const columns = [
+                    'Date', 'HomeTeam', 'AwayTeam', 'FTHG', 'FTAG', 'FTR',
+                    'AvgH', 'AvgD', 'AvgA', 'Avg>2.5', 'Avg<2.5',
+                    'HomeTeamElo','AwayTeamElo','EloDifference',
+                    'Home_AvgGoalsScored','Home_AvgGoalsConceded','Home_Wins','Home_Draws','Home_Losses',
+                    'Away_AvgGoalsScored','Away_AvgGoalsConceded','Away_Wins','Away_Draws','Away_Losses',
+                    'HTH_HomeWins','HTH_AwayWins','HTH_Draws','HTH_AvgHomeGoals','HTH_AvgAwayGoals'
+                ];
+                
+                // Daftar kolom yang harus diformat sebagai Odds (minimal 2 desimal)
+                const oddColumns = ['AvgH', 'AvgD', 'AvgA', 'Avg>2.5', 'Avg<2.5'];
+                // Daftar kolom yang harus diformat sebagai Skor/Hitungan (bilangan bulat)
+                const scoreColumns = ['FTHG', 'FTAG', 'Home_Wins', 'Home_Draws', 'Home_Losses', 'Away_Wins', 'Away_Draws', 'Away_Losses', 'HTH_HomeWins', 'HTH_AwayWins', 'HTH_Draws'];
+
+                newMatches.forEach(match => {
+                    const tr = document.createElement('tr');
+                    columns.forEach(col => {
+                        const td = document.createElement('td');
+                        const val = match[col] !== undefined ? match[col] : '';
+                        
+                        let displayValue = val;
+                        
+                        if (col === 'Date' && typeof val === 'string') {
+                            // Perbaikan Format Tanggal: Tangani format YYYY-MM-DD
+                            try {
+                                const dateObj = new Date(val);
+                                if (!isNaN(dateObj.getTime())) {
+                                    // Menggunakan format DD/MM/YYYY untuk tampilan
+                                    displayValue = dateObj.toLocaleDateString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
+                                } else {
+                                    // Jika tidak dapat diparsing sebagai tanggal, biarkan nilai asli
+                                    displayValue = val; 
+                                }
+                            } catch (e) {
+                                displayValue = val;
+                            }
+
+                        } else if (typeof val === 'number' || (typeof val === 'string' && !isNaN(parseFloat(val)))) {
+                            const num = typeof val === 'number' ? val : parseFloat(val);
+
+                            if (scoreColumns.includes(col)) {
+                                // Kolom Skor/Hitungan: Selalu tampilkan sebagai bilangan bulat
+                                displayValue = Math.round(num).toString();
+                            } else if (oddColumns.includes(col)) {
+                                // Kolom Odds: Tampilkan dengan 2 desimal
+                                displayValue = num.toFixed(2);
+                            } else {
+                                // Kolom lain (seperti Elo, AvgGoals): Tampilkan dengan 3 desimal
+                                // dan hilangkan nol di belakang hanya jika benar-benar bilangan bulat
+                                if (Number.isInteger(num)) {
+                                    displayValue = num.toString();
+                                } else {
+                                    displayValue = num.toFixed(3);
+                                }
+                            }
+                        }
+                        
+                        td.textContent = displayValue;
+                        tr.appendChild(td);
+                    });
+                    dataTableBody.appendChild(tr);
+                });
+                
+                if (newMatches.length > 0) {
+                    alert(`Ditemukan ${newMatches.length} pertandingan baru siap disimpan.`);
+                    autoScrollTable();
+                }
+
+            } else {
+                alert(`Gagal memproses file: ${data.message}`);
+            }
+
+        } catch (error) {
+            console.error('Fetch error:', error);
+            alert('Terjadi kesalahan koneksi atau server.');
+        } finally {
+            saveBtn.textContent = '💾 Simpan Data';
+            saveBtn.disabled = false;
+        }
     });
 
     // 3. Simpan data baru ke dataset
@@ -124,29 +202,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const password = prompt('Masukkan password admin:');
-        if (!password) return;
-
-        const res = await fetch('/api/save_new_matches', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ league: selectedLeague, password, matches: newMatches })
-        });
-
-        const data = await res.json();
-        if (data.status === 'ok') {
-            alert('Data baru berhasil disimpan!');
-            dataTableBody.innerHTML = '';
-            newMatches = [];
-            csvFileInput.value = '';
-        } else {
-            alert(`Gagal menyimpan: ${data.message}`);
+        if (!password) {
+            alert('Penyimpanan dibatalkan.');
+            return;
         }
-        });
+
+        // Tampilkan loading
+        saveBtn.textContent = 'Menyimpan...';
+        saveBtn.disabled = true;
+
+        try {
+            const res = await fetch('/api/save_new_matches', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ league: selectedLeague, password, matches: newMatches })
+            });
+
+            const data = await res.json();
+            if (data.status === 'ok') {
+                alert('Data baru berhasil disimpan!');
+                dataTableBody.innerHTML = '';
+                newMatches = [];
+                csvFileInput.value = ''; // Reset input file
+            } else {
+                alert(`Gagal menyimpan: ${data.message}`);
+            }
+        } catch (error) {
+            console.error('Save error:', error);
+            alert('Terjadi kesalahan koneksi saat menyimpan data.');
+        } finally {
+            saveBtn.textContent = '💾 Simpan Data';
+            saveBtn.disabled = false;
+        }
     });
-
-    // Tambahkan ini di bagian paling bawah file JS kamu:
-function autoScrollTable() {
-  const tableContainer = document.querySelector('.table-container');
-  tableContainer.scrollTop = tableContainer.scrollHeight;
-}
-
+}); // <--- Ini adalah penutup yang hilang/tidak terpakai dari kode asli

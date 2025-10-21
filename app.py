@@ -315,28 +315,68 @@ def compute_features_from_dataset(df, home_team, away_team, window=5):
         'HTH_HomeWins':hth['HTH_HomeWins'],'HTH_AwayWins':hth['HTH_AwayWins'],'HTH_Draws':hth['HTH_Draws'],
         'HTH_AvgHomeGoals':hth['HTH_AvgHomeGoals'],'HTH_AvgAwayGoals':hth['HTH_AvgAwayGoals']
     }
+def format_float_clean(number):
+    """
+    Membulatkan angka ke 2 desimal, lalu mengkonversinya menjadi string
+    dan menghilangkan nol di akhir yang tidak perlu.
+    Contoh: 2.200 -> '2.2', 3.0 -> '3', 1.234 -> '1.23'
+    """
+    if number is None or pd.isna(number) or str(number).strip() == '':
+        return ""
+    
+    # Pastikan input adalah float, lalu bulatkan ke 2 desimal
+    try:
+        rounded_num = round(float(number), 2)
+        # Menggunakan format :g untuk representasi desimal paling ringkas
+        return f"{rounded_num:g}" 
+    except (ValueError, TypeError):
+        return str(number) # Kembalikan sebagai string jika bukan angka
+        
 def update_elo_and_features(df_existing, df_new, window=5, K=30, initial_elo=1500):
+    # -----------------------------------------------------------------
+    # 🟢 PERBAIKAN 1 (MENGATASI TypeError): Pastikan 'Date' bertipe datetime
+    # -----------------------------------------------------------------
+    if 'Date' in df_existing.columns:
+        df_existing['Date'] = pd.to_datetime(df_existing['Date'], errors='coerce')
+    if 'Date' in df_new.columns:
+        df_new['Date'] = pd.to_datetime(df_new['Date'], errors='coerce')
+    # -----------------------------------------------------------------
+
+    # Penggabungan dan pengurutan (sekarang harusnya tidak error)
     df_combined = pd.concat([df_existing, df_new], ignore_index=True).sort_values('Date').reset_index(drop=True)
+    
     elo = {}
     new_rows = []
+    
     for idx, row in df_combined.iterrows():
         home, away = row['HomeTeam'], row['AwayTeam']
         h_elo = elo.get(home, initial_elo)
         a_elo = elo.get(away, initial_elo)
+        
+        # Perhitungan Expected Score ELO
         E_h = 1/(1+10**((a_elo-h_elo)/400))
         E_a = 1-E_h
+        
+        # Hasil Akhir Pertandingan
         if row['FTHG']>row['FTAG']: S_h,S_a=1,0
         elif row['FTHG']<row['FTAG']: S_h,S_a=0,1
         else: S_h,S_a=0.5,0.5
+        
+        # Pembaruan ELO
         h_elo_new=h_elo+K*(S_h-E_h)
         a_elo_new=a_elo+K*(S_a-E_a)
         elo[home],elo[away]=h_elo_new,a_elo_new
+        
+        # Hitung Fitur Berdasarkan Data MASA LALU (sebelum pertandingan saat ini)
         df_past=df_combined.iloc[:idx]
         home_stats=recent_stats_for_team(df_past, home, window)
         away_stats=recent_stats_for_team(df_past, away, window)
+        
+        # Statistik Head-to-Head
         hth_mask=((df_past['HomeTeam']==home)&(df_past['AwayTeam']==away))|((df_past['HomeTeam']==away)&(df_past['AwayTeam']==home))
         hth=df_past[hth_mask].sort_values('Date', ascending=False).head(window)
         hth_home_wins=hth_away_wins=hth_draws=0
+        
         if not hth.empty:
             for _, r in hth.iterrows():
                 if r['HomeTeam']==home:
@@ -346,7 +386,25 @@ def update_elo_and_features(df_existing, df_new, window=5, K=30, initial_elo=150
             hth_avg_home_goals=float(hth['FTHG'].mean())
             hth_avg_away_goals=float(hth['FTAG'].mean())
         else: hth_avg_home_goals=hth_avg_away_goals=0
-        row_full=row.copy()
+
+        row_full = row.copy()
+
+        # -----------------------------------------------------------------
+        # 🟢 PERBAIKAN 2: Menyalin nilai Odds dari data CSV baru
+        # -----------------------------------------------------------------
+        odds_values = {}
+        # Kolom odds yang harus disalin dari input CSV
+        odds_cols = ['AvgH', 'AvgD', 'AvgA', 'Avg>2.5', 'Avg<2.5']
+        
+        for col in odds_cols:
+            # Cek apakah kolom ada di baris dan bukan NaN/None. Jika ada, salin nilainya.
+            # Jika tidak ada, biarkan kosong (sesuai format yang diharapkan)
+            if col in row and pd.notna(row[col]):
+                odds_values[col] = row[col]
+            else:
+                odds_values[col] = ''
+        # -----------------------------------------------------------------
+        
         row_full.update({
             'HomeTeamElo':h_elo_new,'AwayTeamElo':a_elo_new,'EloDifference':h_elo_new-a_elo_new,
             'Home_AvgGoalsScored':home_stats['AvgGoalsScored'],'Home_AvgGoalsConceded':home_stats['AvgGoalsConceded'],
@@ -355,9 +413,13 @@ def update_elo_and_features(df_existing, df_new, window=5, K=30, initial_elo=150
             'Away_Wins':away_stats['Wins'],'Away_Draws':away_stats['Draws'],'Away_Losses':away_stats['Losses'],
             'HTH_HomeWins':hth_home_wins,'HTH_AwayWins':hth_away_wins,'HTH_Draws':hth_draws,
             'HTH_AvgHomeGoals':hth_avg_home_goals,'HTH_AvgAwayGoals':hth_avg_away_goals,
-            'AvgH':'','AvgD':'','AvgA':'','Avg>2.5':'','Avg<2.5':''
+            
         })
-        if idx>=len(df_existing): new_rows.append(row_full)
+
+        # Hanya kembalikan baris yang BARU diunggah (idx >= len(df_existing))
+        if idx >= len(df_existing):
+            new_rows.append(row_full)
+            
     return pd.DataFrame(new_rows)
 
 # ==========================================================
@@ -439,7 +501,6 @@ def api_predict():
             return jsonify({'status':'error','message':'Data liga, fitur, dan tim diperlukan'}),400
 
         league_dir=os.path.join(MODEL_DIR, league.lower().replace(' ','_'))
-        # ... (Kode load model, predict, dll SAMA) ...
         model_hda=joblib.load(os.path.join(league_dir,'model_hda.pkl'))
         model_ou25=joblib.load(os.path.join(league_dir,'model_ou25.pkl'))
         model_btts=joblib.load(os.path.join(league_dir,'model_btts.pkl'))
@@ -506,8 +567,33 @@ def api_upload_csv():
     mask_new=~df_new.apply(lambda r: ((df_existing['Date']==r['Date']) & (df_existing['HomeTeam']==r['HomeTeam']) & (df_existing['AwayTeam']==r['AwayTeam'])).any(), axis=1)
     df_new_only=df_new[mask_new].copy()
     if df_new_only.empty: return jsonify({'status':'ok','message':'Tidak ada pertandingan baru'}),200
+    
+    # 1. Hitung fitur ELO dan lainnya (Data masih berupa angka/float)
     df_new_full=update_elo_and_features(df_existing, df_new_only)
-    return jsonify({'status':'ok','matches':df_new_full.to_dict(orient='records')})
+
+    # 2. Buat salinan DataFrame untuk pemformatan output JSON
+    df_output = df_new_full.copy()
+    
+    # -----------------------------------------------------------------
+    # 🟢 PERBAIKAN UTAMA: Pemformatan Tanggal ke YYYY-MM-DD HH:MM:SS
+    # -----------------------------------------------------------------
+    if 'Date' in df_output.columns:
+        # Pastikan kolom Date bertipe datetime sebelum diformat
+        df_output['Date'] = pd.to_datetime(df_output['Date'], errors='coerce')
+        # Terapkan pemformatan string yang diinginkan
+        df_output['Date'] = df_output['Date'].dt.strftime('%Y-%m-%d %H:%M:%S')
+    
+    # 3. Pemformatan Angka (untuk menghilangkan nol di belakang, seperti 2.20 -> 2.2)
+    cols_to_format = list(df_output.columns)
+    cols_skip = ['HomeTeam', 'AwayTeam', 'FTR', 'HTR', 'Div', 'Date'] # Tambahkan 'Date' ke skip
+    
+    for col in cols_to_format:
+        # Cek tipe data: harus numerik DAN BUKAN kolom yang dilewati
+        if col not in cols_skip and pd.api.types.is_numeric_dtype(df_output[col]):
+            df_output[col] = df_output[col].apply(format_float_clean)
+            
+    # 4. Mengembalikan data yang sudah diformat ke string
+    return jsonify({'status':'ok','matches':df_output.to_dict(orient='records')})
 
 @app.route('/api/save_new_matches', methods=['POST'])
 @login_required
