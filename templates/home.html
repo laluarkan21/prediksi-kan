@@ -18,6 +18,18 @@
 </head>
 <body>
 {% include 'navbar.html' %}
+
+{% if current_user.is_authenticated and session.pop('new_login', False) %}
+    <script>
+        gtag('event', 'login', {
+            'method': 'Google' 
+        });
+        console.log("GA4 Event: 'login' (Google) sent.");
+        // Catatan: session.pop() sudah menghapus flag dari server, 
+        // jadi event tidak akan terkirim lagi saat refresh.
+    </script>
+{% endif %}
+
 <div class="flash-container">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
