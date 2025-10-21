@@ -12,17 +12,7 @@ def select_and_save_columns(input_file_path, output_file_path):
     
     # 1. Tentukan Kolom yang Diperlukan
     REQUIRED_COLUMNS = [
-        'Date',
-        'HomeTeam',
-        'AwayTeam',
-        'FTHG',
-        'FTAG',
-        'FTR',
-        'AvgH',
-        'AvgD',
-        'AvgA',
-        'Avg>2.5',
-        'Avg<2.5'
+        'Date','HomeTeam','AwayTeam','FTHG','FTAG','FTR','AvgH','AvgD','AvgA','Avg>2.5','Avg<2.5','HomeTeamElo','AwayTeamElo','EloDifference','Home_AvgGoalsScored','Home_AvgGoalsConceded','Home_Wins','Home_Draws','Home_Losses','Away_AvgGoalsScored','Away_AvgGoalsConceded','Away_Wins','Away_Draws','Away_Losses','HTH_HomeWins','HTH_AwayWins','HTH_Draws','HTH_AvgHomeGoals','HTH_AvgAwayGoals'
     ]
     
     # 2. Muat Dataset
@@ -74,10 +64,10 @@ def select_and_save_columns(input_file_path, output_file_path):
 # ➡️ GANTI NILAI INI SESUAI DENGAN LOKASI FILE ANDA
 
 # 1. Tentukan jalur file input (dataset asli Anda)
-INPUT_FILE = 'add_dataset/SP1.csv' # Contoh: 'dataset_bundesliga.csv'
+INPUT_FILE = 'dataset/dataset_ligue1_1.csv' # Contoh: 'dataset_bundesliga.csv'
 
 # 2. Tentukan jalur file output (tempat data baru akan disimpan)
-OUTPUT_FILE = 'add_dataset/spanyol.csv' 
+OUTPUT_FILE = 'dataset/dataset_ligue1_1.csv' 
 
 if __name__ == "__main__":
     # Ganti path ini dengan file CSV yang sebenarnya

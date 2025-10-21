@@ -555,27 +555,48 @@ def add_data_page():
     leagues=list_leagues()
     return render_template('add_data.html', leagues=leagues)
 
+# ... (Baris di atas Halaman ADD DATA SAMA) ...
+
 @app.route('/api/upload_csv', methods=['POST'])
 @login_required
 @admin_required
 def api_upload_csv():
     league=request.form.get('league'); file=request.files.get('file')
     if not all([league,file]): return jsonify({'status':'error','message':'Liga dan file CSV diperlukan'}),400
-    filename=secure_filename(file.filename)
+    
+    # Baca CSV
     df_new=pd.read_csv(file)
+    
+    # -----------------------------------------------------------------
+    # ✅ PERBAIKAN: Konversi kolom skor FTHG dan FTAG ke integer
+    # Ini mengatasi TypeError: '>' not supported between instances of 'str' and 'int'
+    # -----------------------------------------------------------------
+    score_cols = ['FTHG', 'FTAG']
+    for col in score_cols:
+        if col in df_new.columns:
+            # Mengkonversi ke numerik. errors='coerce' akan mengubah string non-numerik (termasuk spasi) menjadi NaN.
+            df_new[col] = pd.to_numeric(df_new[col], errors='coerce')
+            # Mengisi NaN dengan 0 (untuk kasus baris kosong/invalid di skor), lalu konversi ke integer.
+            df_new[col] = df_new[col].fillna(0).astype(int)
+    # -----------------------------------------------------------------
+
+    # Muat data lama
     df_existing=load_league_dataset_by_name(league)
+    
+    # Filter pertandingan baru
     mask_new=~df_new.apply(lambda r: ((df_existing['Date']==r['Date']) & (df_existing['HomeTeam']==r['HomeTeam']) & (df_existing['AwayTeam']==r['AwayTeam'])).any(), axis=1)
     df_new_only=df_new[mask_new].copy()
+    
     if df_new_only.empty: return jsonify({'status':'ok','message':'Tidak ada pertandingan baru'}),200
     
-    # 1. Hitung fitur ELO dan lainnya (Data masih berupa angka/float)
+    # 1. Hitung fitur ELO dan lainnya (Data FTHG/FTAG sekarang sudah int)
     df_new_full=update_elo_and_features(df_existing, df_new_only)
 
     # 2. Buat salinan DataFrame untuk pemformatan output JSON
     df_output = df_new_full.copy()
     
     # -----------------------------------------------------------------
-    # 🟢 PERBAIKAN UTAMA: Pemformatan Tanggal ke YYYY-MM-DD HH:MM:SS
+    # 🟢 Pemformatan Tanggal ke YYYY-MM-DD HH:MM:SS
     # -----------------------------------------------------------------
     if 'Date' in df_output.columns:
         # Pastikan kolom Date bertipe datetime sebelum diformat
