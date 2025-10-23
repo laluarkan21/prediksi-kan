@@ -12,6 +12,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
 import secrets
 from functools import wraps
+import functools
 
 # -------------------------
 # KONFIGURASI APLIKASI
@@ -66,6 +67,7 @@ class PredictionHistory(db.Model):
 # -------------------------
 # KONFIGURASI SISTEM LAMA (TETAP SAMA)
 # -------------------------
+ALL_LEAGUES = "All Leagues"
 DATASET_DIR = 'dataset'
 MODEL_DIR = 'models'
 INITIAL_ELO = 1500
@@ -181,7 +183,9 @@ def file_name_from_pretty(league_display):
 
 def list_leagues():
     files = glob.glob(os.path.join(DATASET_DIR, '*.csv'))
-    return [pretty_league_name(os.path.splitext(os.path.basename(p))[0]) for p in files]
+    # Modifikasi: Ambil nama liga, urutkan, lalu tambahkan "All Leagues" di depan
+    league_names = sorted([pretty_league_name(os.path.splitext(os.path.basename(p))[0]) for p in files])
+    return [ALL_LEAGUES] + league_names
 
 def load_league_dataset_by_name(league_display):
     league_lower = league_display.lower().replace(' ', '')
@@ -199,6 +203,131 @@ def load_league_dataset_by_name(league_display):
     if 'Date' in df.columns:
         df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
     return df
+
+@functools.lru_cache(maxsize=128) # Cache untuk performa
+def find_team_league_and_df(team_name):
+    """
+    Mencari di semua CSV untuk menemukan tim dan mengembalikan DF serta nama liga-nya.
+    """
+    # Ambil semua nama liga *aktual*, lewati "All Leagues"
+    all_league_names = [lg for lg in list_leagues() if lg != ALL_LEAGUES]
+    
+    for league_name in all_league_names:
+        try:
+            df = load_league_dataset_by_name(league_name)
+            # Cek apakah tim ada di set tim Home ATAU Away
+            if team_name in set(df['HomeTeam']).union(set(df['AwayTeam'])):
+                return df, league_name
+        except FileNotFoundError:
+            continue # Seharusnya tidak terjadi jika list_leagues() benar
+    return None, None
+
+def h2h_stats_all_leagues(home_team, away_team, window=5):
+    """
+    Menghitung H2H dengan mencari di SEMUA file dataset (lintas-liga).
+    """
+    all_matches = []
+    files = glob.glob(os.path.join(DATASET_DIR, '*.csv'))
+    
+    for f in files:
+        try:
+            df = pd.read_csv(f)
+            if 'Date' in df.columns:
+                df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+            else:
+                continue # Butuh tanggal untuk mengurutkan
+
+            mask = ((df['HomeTeam']==home_team)&(df['AwayTeam']==away_team)) | ((df['HomeTeam']==away_team)&(df['AwayTeam']==home_team))
+            all_matches.append(df[mask])
+        except Exception as e:
+            print(f"Gagal memproses file {f} untuk H2H: {e}")
+            continue
+
+    if not all_matches:
+        return {'HTH_HomeWins':0,'HTH_AwayWins':0,'HTH_Draws':0,
+                'HTH_AvgHomeGoals':0,'HTH_AvgAwayGoals':0}
+
+    combined_hth = pd.concat(all_matches).dropna(subset=['Date'])
+    if combined_hth.empty:
+         return {'HTH_HomeWins':0,'HTH_AwayWins':0,'HTH_Draws':0,
+                'HTH_AvgHomeGoals':0,'HTH_AvgAwayGoals':0}
+
+    hth_sorted = combined_hth.sort_values('Date', ascending=False).head(window)
+    
+    # Logika perhitungan H2H (sama seperti h2h_stats lama)
+    hth_home_wins=hth_away_wins=hth_draws=0
+    home_goals=[]; away_goals=[]
+    for _, row in hth_sorted.iterrows():
+        # Pastikan FTHG/FTAG adalah numerik
+        try:
+            fthg = pd.to_numeric(row['FTHG'], errors='coerce')
+            ftag = pd.to_numeric(row['FTAG'], errors='coerce')
+            if pd.isna(fthg) or pd.isna(ftag): continue
+
+            if row['HomeTeam']==home_team: h_goals,a_goals=fthg,ftag
+            else: h_goals,a_goals=ftag,fthg
+            
+            home_goals.append(h_goals); away_goals.append(a_goals)
+            if h_goals>a_goals: hth_home_wins+=1
+            elif h_goals<a_goals: hth_away_wins+=1
+            else: hth_draws+=1
+        except Exception:
+            continue # Lewati baris jika ada error konversi
+
+    avg_home_goals = float(np.mean(home_goals)) if home_goals else 0
+    avg_away_goals = float(np.mean(away_goals)) if away_goals else 0
+    
+    return {'HTH_HomeWins':hth_home_wins,'HTH_AwayWins':hth_away_wins,'HTH_Draws':hth_draws,
+            'HTH_AvgHomeGoals':avg_home_goals,'HTH_AvgAwayGoals':avg_away_goals}
+
+def compute_features_all_leagues(home_team, away_team, window=5):
+    """
+    Menghitung fitur untuk "All Leagues".
+    - Recent stats & ELO diambil dari liga masing-masing tim.
+    - H2H diambil dari lintas-liga.
+    """
+    df_home, _ = find_team_league_and_df(home_team)
+    df_away, _ = find_team_league_and_df(away_team)
+
+    if df_home is None: raise FileNotFoundError(f"Data tim {home_team} tidak ditemukan.")
+    if df_away is None: raise FileNotFoundError(f"Data tim {away_team} tidak ditemukan.")
+
+    # 1. Ambil ELO Terakhir (dari liga masing-masing)
+    last_home_elo=INITIAL_ELO
+    if 'HomeTeamElo' in df_home.columns and 'AwayTeamElo' in df_home.columns:
+        tmp_h=df_home[(df_home['HomeTeam']==home_team)|(df_home['AwayTeam']==home_team)]
+        if not tmp_h.empty:
+            row=tmp_h.sort_values('Date', ascending=False).iloc[0]
+            last_home_elo=row['HomeTeamElo'] if row['HomeTeam']==home_team else row['AwayTeamElo']
+            
+    last_away_elo=INITIAL_ELO
+    if 'HomeTeamElo' in df_away.columns and 'AwayTeamElo' in df_away.columns:
+        tmp_a=df_away[(df_away['HomeTeam']==away_team)|(df_away['AwayTeam']==away_team)]
+        if not tmp_a.empty:
+            row=tmp_a.sort_values('Date', ascending=False).iloc[0]
+            last_away_elo=row['HomeTeamElo'] if row['HomeTeam']==away_team else row['AwayTeamElo']
+
+    # 2. Ambil Statistik Terbaru (dari liga masing-masing)
+    home_stats=recent_stats_for_team(df_home, home_team)
+    away_stats=recent_stats_for_team(df_away, away_team)
+    
+    # 3. Ambil H2H (lintas-liga)
+    hth=h2h_stats_all_leagues(home_team, away_team, window)
+
+    # 4. Gabungkan (Odds dikosongkan karena tidak relevan)
+    return {
+        'AvgH':'','AvgD':'','AvgA':'','Avg>2.5':'','Avg<2.5':'',
+        'HomeTeamElo':last_home_elo,'AwayTeamElo':last_away_elo,
+        'EloDifference':last_home_elo-last_away_elo,
+        'Home_AvgGoalsScored':home_stats['AvgGoalsScored'],
+        'Home_AvgGoalsConceded':home_stats['AvgGoalsConceded'],
+        'Home_Wins':home_stats['Wins'],'Home_Draws':home_stats['Draws'],'Home_Losses':home_stats['Losses'],
+        'Away_AvgGoalsScored':away_stats['AvgGoalsScored'],
+        'Away_AvgGoalsConceded':away_stats['AvgGoalsConceded'],
+        'Away_Wins':away_stats['Wins'],'Away_Draws':away_stats['Draws'],'Away_Losses':away_stats['Losses'],
+        'HTH_HomeWins':hth['HTH_HomeWins'],'HTH_AwayWins':hth['HTH_AwayWins'],'HTH_Draws':hth['HTH_Draws'],
+        'HTH_AvgHomeGoals':hth['HTH_AvgHomeGoals'],'HTH_AvgAwayGoals':hth['HTH_AvgAwayGoals']
+    }
 
 # ==========================================================
 # RIWAYAT PREDIKSI PER USER (Tetap menggunakan DB)
@@ -463,13 +592,14 @@ def home_page():
 # @login_required # <-- DIHAPUS
 def index():
     leagues=list_leagues()
+    current_year = datetime.now(timezone.utc).year
     return render_template('index.html', leagues=leagues)
 
 @app.route('/api/leagues')
 # Rute ini boleh publik
 def api_leagues():
-    files = glob.glob(os.path.join(DATASET_DIR, '*.csv'))
-    leagues=[pretty_league_name(os.path.splitext(os.path.basename(f))[0]) for f in files]
+    # Panggil fungsi list_leagues() yang sudah kita modifikasi
+    leagues = list_leagues() 
     return jsonify({'status':'ok','leagues':leagues})
 
 @app.route('/stats')
@@ -484,8 +614,20 @@ def api_team_stats():
     league=body.get('league')
     team=body.get('team')
     if not all([league,team]): return jsonify({'status':'error','message':'league and team required'}),400
-    try: df=load_league_dataset_by_name(league)
+    
+    try:
+        # --- LOGIKA BARU ---
+        if league == ALL_LEAGUES:
+            df, _ = find_team_league_and_df(team)
+            if df is None:
+                raise FileNotFoundError(f"Tim '{team}' tidak ditemukan di liga manapun.")
+        else:
+        # --- LOGIKA LAMA ---
+            df=load_league_dataset_by_name(league)
+        # -------------------
+            
     except FileNotFoundError as e: return jsonify({'status':'error','message':str(e)}),404
+    
     stats=recent_stats_for_team(df, team)
     last_elo=None
     if 'HomeTeamElo' in df.columns and 'AwayTeamElo' in df.columns:
@@ -500,10 +642,28 @@ def api_team_stats():
 def api_teams():
     league=request.args.get('league')
     if not league: return jsonify({'status':'error','message':'parameter league diperlukan'}),400
+    
     try:
-        df=load_league_dataset_by_name(league)
-        teams=sorted(set(df['HomeTeam']).union(set(df['AwayTeam'])))
-        return jsonify({'status':'ok','teams':teams})
+        # --- LOGIKA BARU ---
+        if league == ALL_LEAGUES:
+            all_teams = set()
+            files = glob.glob(os.path.join(DATASET_DIR, '*.csv'))
+            for f in files:
+                try:
+                    df = pd.read_csv(f)
+                    all_teams.update(df['HomeTeam'])
+                    all_teams.update(df['AwayTeam'])
+                except Exception:
+                    continue # Lewati file rusak
+            teams = sorted(list(all_teams))
+            return jsonify({'status':'ok','teams':teams})
+        # --- LOGIKA LAMA ---
+        else:
+            df=load_league_dataset_by_name(league)
+            teams=sorted(set(df['HomeTeam']).union(set(df['AwayTeam'])))
+            return jsonify({'status':'ok','teams':teams})
+        # -------------------
+            
     except FileNotFoundError as e:
         return jsonify({'status':'error','message':str(e)}),404
 
@@ -513,9 +673,22 @@ def api_features():
     body=request.json or {}
     league=body.get('league'); home=body.get('home'); away=body.get('away')
     if not all([league,home,away]): return jsonify({'status':'error','message':'league, home, away dibutuhkan'}),400
-    df=load_league_dataset_by_name(league)
-    feats=compute_features_from_dataset(df, home, away)
-    return jsonify({'status':'ok','features':feats})
+    
+    try:
+        # --- LOGIKA BARU ---
+        if league == ALL_LEAGUES:
+            feats = compute_features_all_leagues(home, away)
+        # --- LOGIKA LAMA ---
+        else:
+            df=load_league_dataset_by_name(league)
+            feats=compute_features_from_dataset(df, home, away)
+        # -------------------
+        return jsonify({'status':'ok','features':feats})
+    
+    except FileNotFoundError as e:
+        return jsonify({'status':'error','message':str(e)}),404
+    except Exception as e:
+        return jsonify({'status':'error','message':f"Gagal menghitung fitur: {e}"}),500
 
 @app.route('/api/predict', methods=['POST'])
 # @login_required # <-- DIHAPUS
@@ -530,7 +703,18 @@ def api_predict():
         if not all([league, features, home_team, away_team]):
             return jsonify({'status':'error','message':'Data liga, fitur, dan tim diperlukan'}),400
 
-        league_dir=os.path.join(MODEL_DIR, league.lower().replace(' ','_'))
+        # --- LOGIKA BARU ---
+        league_to_use = league
+        if league == ALL_LEAGUES:
+            # Tentukan liga berdasarkan tim tuan rumah untuk memuat model yang benar
+            _, found_league_name = find_team_league_and_df(home_team)
+            if found_league_name is None:
+                return jsonify({'status':'error','message':f'Tidak dapat menemukan liga untuk tim {home_team} guna memuat model.'}),404
+            league_to_use = found_league_name
+        # -------------------
+            
+        # Gunakan league_to_use (yang sudah ditentukan) untuk memuat model
+        league_dir=os.path.join(MODEL_DIR, league_to_use.lower().replace(' ','_'))
         model_hda=joblib.load(os.path.join(league_dir,'model_hda.pkl'))
         model_ou25=joblib.load(os.path.join(league_dir,'model_ou25.pkl'))
         model_btts=joblib.load(os.path.join(league_dir,'model_btts.pkl'))
@@ -557,7 +741,7 @@ def api_predict():
 
         # Tetap panggil fungsi ini, tapi fungsi ini akan mengecek login
         add_prediction_to_history({
-            'league': league,
+            'league': league, # Simpan 'All Leagues' jika itu yang dipilih
             'home_team': home_team,
             'away_team': away_team,
             'prediction': result
@@ -584,8 +768,6 @@ def admin_required(f):
 def add_data_page():
     leagues=list_leagues()
     return render_template('add_data.html', leagues=leagues)
-
-# ... (Baris di atas Halaman ADD DATA SAMA) ...
 
 @app.route('/api/upload_csv', methods=['POST'])
 @login_required

@@ -366,3 +366,162 @@ button:hover {
     margin-bottom: 8px;
 }
 
+/* ================================================= */
+/* === STYLING MANUAL CHOICES.JS (VERSI FINAL) === */
+/* ================================================= */
+
+/* [BARU] Terapkan box-sizing ke semua elemen choices */
+.choices,
+.choices__inner,
+.choices__list--dropdown,
+.choices__list--dropdown .choices__list,
+.choices__input {
+    box-sizing: border-box;
+}
+
+/* Kontainer utama (relatif untuk positioning dropdown) */
+.choices {
+    position: relative;
+    margin-bottom: 15px;
+    font-size: 1rem;
+    overflow: visible;
+}
+
+/* 1. KOTAK INPUT UTAMA (YANG TERLIHAT) */
+.choices__inner {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: auto;
+    padding: 6px 10px;
+    background: #21262d; /* Warna input Anda */
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    color: #fff;
+}
+
+/* Saat dropdown terbuka, buat sudut bawah jadi siku */
+.choices.is-open .choices__inner {
+    border-radius: 8px 8px 0 0;
+}
+
+/* Teks item yang sudah dipilih */
+.choices__list--single .choices__item {
+    padding: 0;
+    color: #fff;
+}
+
+/* Input pencarian di dalam kotak */
+.choices__input {
+    width: 100%;
+    background: #21262d;
+    color: #fff;
+    font-size: 1rem;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    margin: 0;
+    outline: none;
+}
+
+/* Panah dropdown di kanan */
+.choices__inner::after {
+    content: '';
+    height: 0;
+    width: 0;
+    border-style: solid;
+    border-color: #ccc transparent transparent transparent;
+    border-width: 5px;
+    position: absolute;
+    right: 11.5px;
+    top: 50%;
+    margin-top: -2.5px;
+    pointer-events: none;
+    transition: transform 0.2s ease;
+}
+
+/* Putar panah saat dropdown terbuka */
+.choices.is-open .choices__inner::after {
+    transform: rotate(180deg);
+}
+
+
+/* 2. PANEL DROPDOWN (YANG SEMULA PUTIH) */
+.choices__list--dropdown {
+    display: none; /* Sembunyi by default */
+    position: absolute;
+    width: 100%; /* Lebar 100% dari .choices */
+    background: #2b3138; /* WARNA DROPDOWN GELAP */
+    border: 1px solid #484b4f; /* Border dropdown */
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    top: 100%; /* Posisikan persis di bawah input */
+    margin-top: -1px; /* Tumpuk sedikit agar border menyatu */
+    overflow: hidden; /* Sembunyikan bagian list yang berlebih */
+    z-index: 10; /* Pastikan muncul di atas elemen lain */
+}
+
+/* Tampilkan dropdown saat 'is-open' */
+.choices.is-open .choices__list--dropdown {
+    display: block;
+}
+
+/* Wrapper di dalam dropdown untuk scrolling */
+.choices__list--dropdown .choices__list {
+    max-height: 200px;
+    overflow-y: auto;  /* Hanya scroll vertikal */
+    overflow-x: hidden; /* Sembunyikan scroll horizontal */
+    -webkit-overflow-scrolling: touch;
+    will-change: scroll-position;
+    
+    /* Styling Scrollbar Firefox */
+    scrollbar-width: thin;
+    scrollbar-color: #06b6d4 #21262d;
+}
+
+/* 3. ITEM DI DALAM DROPDOWN */
+.choices__list--dropdown .choices__item {
+    position: relative;
+    padding: 8px 10px;
+    font-size: 0.95rem;
+    color: #e6edf3;
+    
+    /* Cegah teks memanjang keluar batas */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Item yang bisa dipilih */
+.choices__list--dropdown .choices__item--selectable {
+    cursor: pointer;
+}
+
+/* Item saat di-hover / highlighted */
+.choices__list--dropdown .choices__item--selectable.is-highlighted {
+    background-color: #06b6d4; /* Warna highlight Anda */
+    color: #000;
+}
+
+/* Item placeholder/disabled (cth: "Pilih liga...") */
+.choices__list--dropdown .choices__item--disabled {
+    color: #888;
+    cursor: not-allowed;
+}
+
+/* 4. STYLING SCROLLBAR (CHROME/EDGE/SAFARI) */
+.choices__list--dropdown .choices__list::-webkit-scrollbar {
+    width: 8px;
+}
+.choices__list--dropdown .choices__list::-webkit-scrollbar-track {
+    background: #21262d;
+    border-radius: 4px;
+}
+.choices__list--dropdown .choices__list::-webkit-scrollbar-thumb {
+    background: #484b4f;
+    border-radius: 4px;
+}
+.choices__list--dropdown .choices__list::-webkit-scrollbar-thumb:hover {
+    background: #06b6d4;
+}

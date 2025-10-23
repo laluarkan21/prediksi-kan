@@ -26,12 +26,10 @@
         Untuk liga lainnya, silakan masukkan data Elo tim secara manual atau biarkan default.
     </div>
 
-    <a href="{{ url_for('add_data_page') }}" class="btn-link">➕ Tambah Data Baru</a>
-
     <div class="form-group">
         <label for="League">Liga</label>
         <select id="League" class="input-field">
-            <option value="">Pilih liga...</option>
+            <option value=""></option>
         </select>
     </div>
 
@@ -157,7 +155,7 @@
             </div>
         </div>
     </div>
-    
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
     <script src="{{ url_for('static', filename='js/home.js') }}"></script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </div> <footer class="main-footer">
