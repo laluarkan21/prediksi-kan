@@ -6,15 +6,16 @@
   }
   .main-nav {
     background: var(--card);
-    padding: 20px 32px;
+    padding: 5px 10px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, .4);
-    position: sticky;
+    position: relative;
     top: 0;
     z-index: 100;
     backdrop-filter: blur(8px);
     width: 100%;
     box-sizing: border-box;
   }
+
   .nav-inner {
     width: 100%;
     display: flex;
@@ -30,23 +31,26 @@
     flex-shrink: 0;
     display: flex; /* Aktifkan flexbox */
     align-items: center; /* Sejajarkan logo & teks secara vertikal */
-    gap: 8px; /* Jarak antara logo dan teks */
+    gap: 0; /* Jarak antara logo dan teks */
   }
 
   /* --- [2] STYLE BARU UNTUK LOGO "L1" --- */
   .brand-logo {
-    font-size: 1.8rem; /* Ukuran logo lebih besar */
-    font-weight: 800; /* Lebih tebal */
-    color: #fff; /* Warna putih */
-    background-color: var(--accent); /* Background warna aksen */
-    border-radius: 50px; /* Sudut agak bulat */
-    padding: 5px 5px; /* Padding dalam */
-    line-height: 1; /* Pastikan tinggi pas */
+    height: 72px;
+    width: auto;
+    border-radius: 50%;
+    object-fit: cover;
+    background: none;
+    padding: 0;
+    
+    /* blend yang lebih halus */
+    mix-blend-mode: lighten;
+    filter: brightness(1.05) contrast(1.05);           /* hapus padding bawaan */
   }
 
   /* --- [3] STYLE BARU UNTUK TEKS BRAND --- */
   .brand-text {
-      font-size: 1.3rem; /* Ukuran teks brand */
+      font-size: 1rem; /* Ukuran teks brand */
   }
   /* --- AKHIR PERUBAHAN STYLE --- */
 
@@ -209,13 +213,20 @@
         margin-left: auto !important;
         align-items: center;
     }
+    .brand-text {
+      font-size: 1.3rem; /* Ukuran teks brand */
+    }
+
+    .main-nav {
+      padding: 5px 30px;
+    }
   }
 </style>
 
 <nav class="main-nav">
   <div class="nav-inner">
     <a href="/" class="brand">
-      <span class="brand-logo">L1</span>
+      <img class="brand-logo" src="{{ url_for('static', filename='prediksikan-logo1.png') }}" alt="Logo">
       <span class="brand-text">Prediksi-Kan</span>
     </a>
     <ul class="nav-links" id="nav-links">

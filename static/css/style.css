@@ -17,7 +17,7 @@ body {
 }
 
 .container {
-    background: #161b22;
+    background: rgba(255,255,255,.05);
     padding: 30px;
     border-radius: 18px;
     width: 90%;
@@ -94,7 +94,7 @@ label {
     flex-direction: column;
     padding: 10px 10px;
     margin-bottom: 15px;
-    background: #484b4f;
+    background: rgba(255,255,255,.05);
     border-radius: 10px;
     transition: background 0.2s;
     width: 100%;
@@ -113,14 +113,11 @@ label {
     box-sizing: border-box;
 }
 
-.input-wrapper:hover {
-    background: #1b2028;
-}
 
 .input-field, .auto-input {
     width: 100%;
     min-width: 0;
-    padding: 10px;
+    padding: 15px;
     border-radius: 8px;
     border: none;
     background: #21262d;
