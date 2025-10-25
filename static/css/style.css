@@ -382,7 +382,7 @@ button:hover {
 /* Kontainer utama (relatif untuk positioning dropdown) */
 .choices {
     position: relative;
-    margin-bottom: 15px;
+    /* margin-bottom: 15px; */
     font-size: 1rem;
     overflow: visible;
 }
@@ -393,7 +393,7 @@ button:hover {
     align-items: center;
     width: 100%;
     min-height: auto;
-    padding: 6px 10px;
+    padding: 10px 10px;
     background: #21262d; /* Warna input Anda */
     border: none;
     border-radius: 8px;
@@ -495,7 +495,7 @@ button:hover {
 
 /* Item yang bisa dipilih */
 .choices__list--dropdown .choices__item--selectable {
-    cursor: pointer;
+    /* cursor: pointer; */
 }
 
 /* Item saat di-hover / highlighted */

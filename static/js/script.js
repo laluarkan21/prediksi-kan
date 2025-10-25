@@ -13,11 +13,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // [BARU] Inisialisasi Choices.js untuk setiap dropdown
     // Kita simpan instance-nya agar bisa kita panggil API-nya nanti
     const leagueChoice = new Choices(leagueEl, {
-        searchEnabled: true,
+        searchEnabled: false,
         itemSelectText: 'Tekan untuk memilih',
         shouldSort: false, // Biarkan urutan liga dari server
         allowHTML: false,
-        appendLocation: 'origin' // <-- TAMBAHKAN INI
+        appendLocation: 'origin',
     });
 
     const homeChoice = new Choices(homeEl, {
@@ -25,7 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
         itemSelectText: 'Tekan untuk memilih',
         shouldSort: true, // Urutkan nama tim berdasarkan abjad
         allowHTML: false,
-        appendLocation: 'origin' // <-- TAMBAHKAN INI
+        appendLocation: 'origin',
+        searchPlaceholderValue: 'Ketik untuk mencari tim...'
     });
 
     const awayChoice = new Choices(awayEl, {
@@ -33,65 +34,101 @@ document.addEventListener('DOMContentLoaded', () => {
         itemSelectText: 'Tekan untuk memilih',
         shouldSort: true, // Urutkan nama tim berdasarkan abjad
         allowHTML: false,
-        appendLocation: 'origin' // <-- TAMBAHKAN INI
+        appendLocation: 'origin',
+        searchPlaceholderValue: 'Ketik untuk mencari tim...'
     });
     
     // ===================== LOAD LEAGUES =====================
     async function loadLeagues() {
-        try {
-            const res = await fetch('/api/leagues');
-            const j = await res.json();
+    try {
+        const res = await fetch('/api/leagues');
+        const j = await res.json();
 
-            // [MODIFIKASI] Gunakan .setChoices() dari Choices.js
-            const choices = [
-                { value: '', label: 'Pilih liga...', selected: true, disabled: true }
-            ];
+        // [PERBAIKAN] Mulai dengan array KOSONG.
+        // Placeholder ("Pilih liga...") akan diambil dari HTML.
+        const choices = []; 
 
-            if (j.status === 'ok' && Array.isArray(j.leagues)) {
-                j.leagues.forEach(l => {
-                    choices.push({ value: l, label: l });
-                });
-                // Argumen terakhir (true) berarti kita ganti semua opsi yang ada
-                leagueChoice.setChoices(choices, 'value', 'label', true);
-            }
-        } catch {
-            // [MODIFIKASI] Tampilkan error di dalam dropdown
-            leagueChoice.setChoices([
-                { value: '', label: '(Gagal memuat liga)', selected: true }
-            ], 'value', 'label', true);
+        if (j.status === 'ok' && Array.isArray(j.leagues)) {
+            // Hanya tambahkan nama liga yang sebenarnya
+            j.leagues.forEach(l => {
+                choices.push({ value: l, label: l });
+            });
+
+            // [PERBAIKAN] Gunakan .setChoices() hanya dengan daftar liga
+            // Argumen 'true' akan menghapus placeholder awal dari HTML
+            leagueChoice.setChoices(choices, 'value', 'label', true);
+
+            // [PERBAIKAN] Set nilai kembali ke string kosong
+            // untuk menampilkan placeholder HTML.
+            leagueChoice.setValue(['']); 
+        } else {
+             // Jika gagal, set pilihan error dan tampilkan placeholder
+             leagueChoice.setChoices([
+                 { value: '', label: '(Gagal memuat liga)' }
+             ], 'value', 'label', true);
+             leagueChoice.setValue(['']);
         }
+    } catch {
+        // Tangani error fetch
+        leagueChoice.setChoices([
+            { value: '', label: '(Error koneksi)', disabled: true }
+        ], 'value', 'label', true);
+        leagueChoice.setValue(['']); // Tampilkan placeholder HTML
     }
+}
 
-    // ===================== LOAD TEAMS =====================
-    async function loadTeamsForLeague(league) {
-        try {
-            const res = await fetch(`/api/teams?league=${encodeURIComponent(league)}`);
-            const j = await res.json();
+    // ===================== LOAD TEAMS (VERSI PERBAIKAN) =====================
+    // ===================== LOAD TEAMS (VERSI PERBAIKAN) =====================
+async function loadTeamsForLeague(league) {
+    try {
+        const res = await fetch(`/api/teams?league=${encodeURIComponent(league)}`);
+        const j = await res.json();
 
-            // [MODIFIKASI] Siapkan opsi untuk Choices.js
-            const placeholder = { value: '', label: 'Pilih tim...', selected: true, disabled: true };
-            const teamChoices = [placeholder];
+        // [PERBAIKAN] Mulai dengan array KOSONG.
+        const teamChoices = [];
 
-            if (j.status === 'ok' && Array.isArray(j.teams)) {
-                j.teams.forEach(t => {
-                    teamChoices.push({ value: t, label: t });
-                });
+        if (j.status === 'ok' && Array.isArray(j.teams)) {
 
-                // [MODIFIKASI] Gunakan .setChoices() untuk home dan away
-                homeChoice.setChoices(teamChoices, 'value', 'label', true);
-                awayChoice.setChoices(teamChoices, 'value', 'label', true);
+            // Hanya tambahkan nama tim yang sebenarnya ke array
+            j.teams.forEach(t => {
+                teamChoices.push({ value: t, label: t });
+            });
 
-                // [MODIFIKASI] Gunakan API .enable() dari Choices.js
-                homeChoice.enable();
-                awayChoice.enable();
-            }
-        } catch {
-            alert('Gagal memuat tim');
-            // [BARU] Pastikan dropdown tetap ter-disable jika gagal
-            homeChoice.disable();
-            awayChoice.disable();
+            // 1. Set pilihan tim BARU (ini mungkin otomatis memilih yang pertama)
+            homeChoice.setChoices(teamChoices, 'value', 'label', true);
+            awayChoice.setChoices(teamChoices, 'value', 'label', true);
+
+            // 2. PAKSA KEMBALI ke placeholder (nilai "") SETELAH setChoices
+            homeChoice.setValue(['']); // Pastikan ini ada SETELAH setChoices
+            awayChoice.setValue(['']); // Pastikan ini ada SETELAH setChoices
+
+            // 3. Aktifkan dropdown
+            homeChoice.enable();
+            awayChoice.enable();
+
+            console.log("Teams loaded. Set values to placeholder."); // DEBUG
+        
+        } else {
+             // Jika gagal memuat tim, pastikan tetap disabled dan placeholder
+             console.log("Failed to load teams. Disabling and setting placeholder."); // DEBUG
+             homeChoice.disable();
+             awayChoice.disable();
+             homeChoice.clearStore(); // Hapus pilihan lama
+             awayChoice.clearStore();
+             homeChoice.setValue(['']); // Set ke placeholder
+             awayChoice.setValue(['']);
         }
+    } catch {
+        alert('Gagal memuat tim (catch block)');
+        // Pastikan dropdown tetap ter-disable jika error fetch
+        homeChoice.disable();
+        awayChoice.disable();
+        homeChoice.clearStore();
+        awayChoice.clearStore();
+        homeChoice.setValue(['']);
+        awayChoice.setValue(['']);
     }
+}
 
     // ===================== FETCH FEATURES =====================
     // ... (Tidak ada perubahan di fungsi ini)
@@ -129,11 +166,21 @@ document.addEventListener('DOMContentLoaded', () => {
         displayData.HTH_AvgAwayGoals = Math.round(features.HTH_AvgAwayGoals * hth_count);
 
         const featureIdMap = { 'Avg>2.5': 'AvgOver25', 'Avg<2.5': 'AvgUnder25' };
-        for (const [key, val] of Object.entries(displayData)) {
-            const elementId = featureIdMap[key] || key;
-            const el = document.getElementById(elementId);
-            if (el) el.value = val;
-        }
+        for (const [key, val] of Object.entries(displayData)) {
+            const elementId = featureIdMap[key] || key;
+            const el = document.getElementById(elementId);
+            if (el) {
+                // --- PERBAIKAN DIMULAI DI SINI ---
+                if (key === 'EloDifference' && typeof val === 'number') {
+                    // Jika kunci adalah 'EloDifference' dan nilainya angka, format ke 2 desimal
+                    el.value = val.toFixed(2);
+                } else {
+                    // Untuk semua fitur lain, tampilkan nilai asli
+                    el.value = val;
+                }
+                // --- PERBAIKAN SELESAI DI SINI ---
+            }
+        }
 
         ['AvgH', 'AvgD', 'AvgA', 'AvgOver25', 'AvgUnder25'].forEach(id => {
             const el = document.getElementById(id);
@@ -178,7 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div id="prob-bars" class="prob-section">
             ${renderProbBlock('🏠 (Home / Draw / Away)', p.HDA?.probs)}
             ${renderProbBlock('⚽ Over / Under 2.5', p.OU25?.probs)}
-            ${renderProbBlock('🤝 BTTS', p.BTTS?.probs)}
+            ${renderProbBlock('🤝 Both Team To Score', p.BTTS?.probs)}
           </div>
         `;
         animateBars();
@@ -224,51 +271,91 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ===================== EVENT LISTENERS =====================
-    // [MODIFIKASI] Event listener tetap sama, tapi kita tambahkan reset
-    // untuk Choices.js
+    // ===================== EVENT LISTENERS (VERSI PERBAIKAN) =====================
     leagueEl.addEventListener('change', e => {
-        const league = e.target.value;
-        if (!league) return;
+    const league = e.target.value;
+    if (!league) return;
 
-        // [BARU] Reset dan disable dropdown tim menggunakan API Choices.js
-        homeChoice.disable();
-        awayChoice.disable();
-        // Beri placeholder "Memuat..."
-        const loadingPlaceholder = [{ value: '', label: 'Memuat tim...', selected: true }];
-        homeChoice.setChoices(loadingPlaceholder, 'value', 'label', true);
-        awayChoice.setChoices(loadingPlaceholder, 'value', 'label', true);
+    // Reset dan disable dropdown tim
+    homeChoice.disable();
+    awayChoice.disable();
+    
+    // Hapus semua pilihan yang ada
+    homeChoice.clearStore();
+    awayChoice.clearStore();
 
-        // Panggil fungsi loadTeams
-        loadTeamsForLeague(league);
+    // Set nilai ke placeholder HTML
+    homeChoice.setValue(['']);
+    awayChoice.setValue(['']);
 
-        // Sembunyikan bagian lain
+    // Panggil fungsi loadTeams
+    loadTeamsForLeague(league);
+
+    // Sembunyikan bagian lain
+    featureSection.classList.add('hidden');
+    resultEl.classList.add('hidden');
+    currentFeatures = null;
+});
+
+    // ... (Tidak ada perubahan di event listener [homeEl, awayEl]) ...
+    [homeEl, awayEl].forEach(sel => {
+    // Gunakan 'choice' event dari Choices.js, BUKAN 'change' dari <select>
+    // Ini mungkin lebih andal
+    const choiceInstance = (sel.id === 'HomeTeam') ? homeChoice : awayChoice;
+
+    choiceInstance.passedElement.element.addEventListener('choice', async (event) => {
+        // Selalu sembunyikan fitur & reset state di awal
         featureSection.classList.add('hidden');
         resultEl.classList.add('hidden');
-        currentFeatures = null;
+        currentFeatures = null; // Reset fitur
+
+        // [PERUBAHAN UTAMA] Ambil nilai langsung dari instance Choices.js
+        // .getValue(true) mengembalikan nilai (string), bukan objek
+        const leagueValue = leagueChoice.getValue(true);
+        const homeValue = homeChoice.getValue(true);
+        const awayValue = awayChoice.getValue(true);
+
+        console.log(`Choice Event Triggered. Checking conditions - League: "${leagueValue}", Home: "${homeValue}", Away: "${awayValue}"`);
+
+        // Gunakan nilai dari API Choices.js untuk pengecekan
+        if (leagueValue && leagueValue !== '' &&
+            homeValue && homeValue !== '' &&
+            awayValue && awayValue !== '' &&
+            homeValue !== awayValue) {
+
+            console.log("Conditions MET (using Choices API). Attempting to fetch features...");
+            try {
+                if (loadingSpinner) loadingSpinner.classList.remove('hidden');
+                // Kirim nilai yang didapat dari API Choices.js ke backend
+                await fetchAndStoreFeatures(leagueValue, homeValue, awayValue);
+
+            } catch (err) {
+                console.error('Error fetching features:', err);
+                alert('Gagal memuat fitur otomatis: ' + err.message);
+                featureSection.classList.add('hidden');
+            } finally {
+                 if (loadingSpinner) loadingSpinner.classList.add('hidden');
+            }
+        } else {
+             console.log("Conditions NOT MET (using Choices API). Features remain hidden.");
+        }
     });
 
-    // [MODIFIKASI] Event listener ini akan tetap Bekerja!
-    // Choices.js secara otomatis memperbarui nilai .value dari
-    // elemen <select> aslinya (homeEl dan awayEl).
-    // Jadi, tidak perlu ada perubahan di sini.
-    [homeEl, awayEl].forEach(sel => {
-        sel.addEventListener('change', async () => {
-            const league = leagueEl.value;
-            const home = homeEl.value;
-            const away = awayEl.value;
-            if (!league || !home || !away || home === away) return;
-            try {
-                await fetchAndStoreFeatures(league, home, away);
-            } catch (err) {
-                alert('Gagal memuat fitur otomatis: ' + err.message);
-            }
-        });
+    // Tambahkan listener untuk 'change' juga sebagai fallback/safety net
+    // untuk menyembunyikan fitur jika nilai kembali ke placeholder (value="")
+    sel.addEventListener('change', () => {
+        const homeVal = homeChoice.getValue(true);
+        const awayVal = awayChoice.getValue(true);
+        if (!homeVal || homeVal === '' || !awayVal || awayVal === '') {
+             featureSection.classList.add('hidden');
+             resultEl.classList.add('hidden');
+             currentFeatures = null;
+        }
     });
+});
 
     // ===================== PREDICT BUTTON =====================
     // ... (Tidak ada perubahan di fungsi ini)
-    // Semua logika .value (seperti homeEl.value) akan tetap berfungsi
     predictBtn.addEventListener('click', async () => {
         predictBtn.disabled = true;
         if (loadingSpinner) loadingSpinner.classList.remove('hidden');

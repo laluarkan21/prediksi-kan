@@ -43,6 +43,7 @@ def pretty_league_name(file_name):
     name = name.replace('_1', '')
 
     special_cases = {
+        'eredivisie': 'Eredivisie',
         'seriea': 'Serie A',
         'laliga': 'La Liga',
         'premierleague': 'Premier League',

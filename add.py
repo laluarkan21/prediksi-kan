@@ -64,10 +64,10 @@ def select_and_save_columns(input_file_path, output_file_path):
 # ➡️ GANTI NILAI INI SESUAI DENGAN LOKASI FILE ANDA
 
 # 1. Tentukan jalur file input (dataset asli Anda)
-INPUT_FILE = 'dataset/dataset_ligue1_1.csv' # Contoh: 'dataset_bundesliga.csv'
+INPUT_FILE = 'datasetPrediksi/belanda/N.csv' # Contoh: 'dataset_bundesliga.csv'
 
 # 2. Tentukan jalur file output (tempat data baru akan disimpan)
-OUTPUT_FILE = 'dataset/dataset_ligue1_1.csv' 
+OUTPUT_FILE = 'datasetPrediksi/belanda/N1.csv' 
 
 if __name__ == "__main__":
     # Ganti path ini dengan file CSV yang sebenarnya

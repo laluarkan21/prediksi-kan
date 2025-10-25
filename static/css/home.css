@@ -241,10 +241,27 @@ body {
     justify-content: center;
     margin-top: auto;
 }
+
 .footer-copyright {
     margin-bottom: 20px;
     font-size: 1rem;
     letter-spacing: 0.5px;
+}
+
+.footer-data-source {
+    font-size: 0.9rem; /* Sedikit lebih kecil */
+    color: #888;      /* Warna teks biasa di baris ini */
+    margin-top: 5px; /* Jarak dari copyright */
+}
+
+.footer-data-source a {
+    color: #046171; /* <<< GANTI MENJADI INI (abu-abu lebih gelap) */
+    text-decoration: none; /* Hapus garis bawah */
+}
+
+.footer-data-source a:hover {
+    text-decoration: underline; /* Garis bawah saat hover */
+    color: #aaa; /* Opsional: Buat sedikit lebih terang saat di-hover */
 }
 
 .flash-container {
