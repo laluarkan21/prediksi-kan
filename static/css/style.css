@@ -495,7 +495,7 @@ button:hover {
 
 /* Item yang bisa dipilih */
 .choices__list--dropdown .choices__item--selectable {
-    /* cursor: pointer; */
+    cursor: pointer;
 }
 
 /* Item saat di-hover / highlighted */
